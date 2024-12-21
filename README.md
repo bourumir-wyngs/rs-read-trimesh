@@ -1,6 +1,6 @@
 # rs-read-trimesh
 [![GitHub](https://img.shields.io/badge/GitHub-777777)](https://github.com/bourumir-wyngs/rs-read-trimesh)
-[![crates.io](https://img.shields.io/crates/v/rs-read-trimesh_bw.svg)](https://crates.io/crates/rs-read-trimesh)
+[![crates.io](https://img.shields.io/crates/v/rs-read-trimesh.svg)](https://crates.io/crates/rs-read-trimesh)
 [![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/bourumir-wyngs/rs-read-trimesh/rust.yml)](https://github.com/bourumir-wyngs/rs-read-trimesh/actions)
 [![crates.io](https://img.shields.io/crates/l/rs-read-trimesh.svg)](https://crates.io/crates/rs-read-trimesh)
 [![crates.io](https://img.shields.io/crates/d/rs-read-trimesh.svg)](https://crates.io/crates/rs-read-trimesh)
