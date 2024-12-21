@@ -6,7 +6,7 @@
 [![crates.io](https://img.shields.io/crates/d/rs-read-trimesh.svg)](https://crates.io/crates/rs-read-trimesh)
 [![docs.rs](https://docs.rs/rs-read-trimesh/badge.svg)](https://docs.rs/rs-read-trimesh)
 
-`rs-read-trimesh` is a Rust library for loading 3D triangular meshes from files in various 3D formats. The main motivation behind this library is that existing readers do not directly output the format we work with (Parry's `TriMesh`) and require additional boilerplate code, which would be better implemented as a separate dependency.)
+`rs-read-trimesh` is a Rust library for loading 3D triangular meshes from files in various 3D formats. The main motivation behind this library is that existing readers do not directly output the format we work with (Parry's `TriMesh`) and require additional boilerplate code, which would be better implemented as a separate dependency.
 
 ## Features
 The library provides a single function that reads a file into a `TriMesh` given its file path. It supports `.ply`, `.stl`, and `.obj` formats, with built-in robustness to handle the diverse data structures found in `.ply` files, which may use different data types.
