@@ -50,7 +50,6 @@ The `scale` parameter allows you to scale all the vertices of the mesh. Setting 
 
 The following crates are used to power the functionality of this library:
 
-- [`nalgebra`](https://crates.io/crates/nalgebra): A linear algebra library for vector and matrix operations.
 - [`ply-rs-bw`](https://crates.io/crates/ply-rs-bw): A library for reading and writing PLY files.
 - [`stl_io`](https://crates.io/crates/stl_io): A library for reading and writing STL files.
 - [`tobj`](https://crates.io/crates/tobj): A library for loading OBJ files.
