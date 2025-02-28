@@ -9,8 +9,7 @@ use stl_io::read_stl;
 use tobj;
 
 /// Loads a 3D triangular mesh (TriMesh) from a given file, applies optional scaling
-/// and returns the constructed mesh. This function supports multiple formats such as `.stl`, `.ply`,
-/// and `.obj`.
+/// and returns the constructed mesh. This function supports multiple formats.
 ///
 /// # Arguments
 ///
@@ -33,11 +32,12 @@ use tobj;
 /// * `.stl` - Standard Tessellation Language files.
 /// * `.ply` - Polygon files that can represent geometric 3D data.
 /// * `.obj` - Wavefront OBJ files.
+/// * `.dae` - Collada files
 ///
 /// # Errors
 ///
 /// Returns an error in the following cases:
-/// * If the file extension is not supported (not `.stl`, `.ply`,`.obj` or `.dae`).
+/// * If the file extension is not supported.
 /// * If the file cannot be read or parsed by the respective loader.
 ///
 /// # Example
@@ -111,14 +111,14 @@ pub fn load_trimesh_with_flags(
 fn load_trimesh_from_ply(ply_file_path: &str) -> Result<(Vec<Point<f32>>, Vec<[u32; 3]>), String> {
     // Open the file
     let file = File::open(ply_file_path)
-        .map_err(|err| format!("Could not open PLY file '{}': {}", ply_file_path, err))?;
+        .map_err(|err| format!("Could not open .ply file '{}': {}", ply_file_path, err))?;
     let mut reader = BufReader::new(file);
 
     // Create a PLY parser and parse the header
     let parser = Parser::<DefaultElement>::new();
     let ply = parser
         .read_ply(&mut reader)
-        .map_err(|err| format!("Could not parse PLY file '{}': {}", ply_file_path, err))?;
+        .map_err(|err| format!("Could not parse .ply file '{}': {}", ply_file_path, err))?;
 
     // Initialize containers for vertices and indices
     let mut vertices = Vec::new();
@@ -157,7 +157,7 @@ fn load_trimesh_from_ply(ply_file_path: &str) -> Result<(Vec<Point<f32>>, Vec<[u
             vertices.push(Point::new(x, y, z));
         }
     } else {
-        return Err("No 'vertex' payload found in the PLY file".to_string());
+        return Err("No 'vertex' payload found in the .ply file".to_string());
     }
 
     // Extract faces (indices)
@@ -261,7 +261,7 @@ fn load_trimesh_from_stl(stl_file_path: &str) -> Result<(Vec<Point<f32>>, Vec<[u
 fn load_trimesh_from_obj(obj_file_path: &str) -> Result<(Vec<Point<f32>>, Vec<[u32; 3]>), String> {
     // Load the OBJ file using the `tobj` library
     let (models, _) = tobj::load_obj(obj_file_path, &tobj::LoadOptions::default())
-        .map_err(|e| format!("Failed to load OBJ file '{}': {}", obj_file_path, e))?;
+        .map_err(|e| format!("Failed to load .obj file '{}': {}", obj_file_path, e))?;
 
     // Collect vertices and indices
     let mut vertices = Vec::new();
@@ -352,7 +352,10 @@ fn load_trimesh_from_dae(
                                 }
                             }
                         }
-                        meshes.push((mesh_vertices, mesh_indices));
+
+                        if !mesh_vertices.is_empty() {
+                            meshes.push((mesh_vertices, mesh_indices));
+                        }
                     }
                 }
             }
@@ -360,7 +363,7 @@ fn load_trimesh_from_dae(
     }
 
     if meshes.is_empty() {
-        Err("The file contains no mesh".to_string())
+        Err("The .dae file contains no mesh".to_string())
     } else {
         Ok(merge_meshes(meshes))
     }
@@ -370,7 +373,6 @@ fn merge_meshes(
     meshes: Vec<(Vec<Point3<f32>>, Vec<[u32; 3]>)>,
 ) -> (Vec<Point3<f32>>, Vec<[u32; 3]>) {
     if meshes.len() == 1 {
-        println!("Found single mesh:");
         return meshes.into_iter().next().unwrap();
     }
 
@@ -402,20 +404,24 @@ mod tests {
 
     #[test]
     fn test_merge_meshes() {
+        fn point(x: f32, y: f32, z: f32) -> Point3<f32> {
+            Point3::new(x, y, z)
+        }
+        
         let mesh1 = (
             vec![
-                Point3::new(0.0, 0.0, 0.0),
-                Point3::new(1.0, 0.0, 0.0),
-                Point3::new(0.0, 1.0, 0.0),
+                point(0.0, 0.0, 0.0),
+                point(1.0, 0.0, 0.0),
+                point(0.0, 1.0, 0.0),
             ],
             vec![[0, 1, 2]],
         );
 
         let mesh2 = (
             vec![
-                Point3::new(1.0, 1.0, 0.0),
-                Point3::new(2.0, 1.0, 0.0),
-                Point3::new(1.0, 2.0, 0.0),
+                point(1.0, 1.0, 0.0),
+                point(2.0, 1.0, 0.0),
+                point(1.0, 2.0, 0.0),
             ],
             vec![[0, 1, 2]],
         );
@@ -423,12 +429,12 @@ mod tests {
         let (merged_vertices, merged_indices) = merge_meshes(vec![mesh1, mesh2]);
 
         let expected_vertices = vec![
-            Point3::new(0.0, 0.0, 0.0),
-            Point3::new(1.0, 0.0, 0.0),
-            Point3::new(0.0, 1.0, 0.0),
-            Point3::new(1.0, 1.0, 0.0),
-            Point3::new(2.0, 1.0, 0.0),
-            Point3::new(1.0, 2.0, 0.0),
+            point(0.0, 0.0, 0.0),
+            point(1.0, 0.0, 0.0),
+            point(0.0, 1.0, 0.0),
+            point(1.0, 1.0, 0.0),
+            point(2.0, 1.0, 0.0),
+            point(1.0, 2.0, 0.0),
         ];
 
         let expected_indices = vec![[0, 1, 2], [3, 4, 5]];
