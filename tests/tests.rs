@@ -1,6 +1,16 @@
 use rs_read_trimesh::{load_trimesh, load_trimesh_with_flags};
 use std::path::Path;
 
+#[cfg(feature = "parry17")]
+use {parry17::math::Point,
+     parry17::shape::{TriMesh, TriMeshFlags}
+};
+
+#[cfg(feature = "parry18")]
+use {parry18::math::Point,
+     parry18::shape::{TriMesh, TriMeshFlags}
+};
+
 #[test]
 fn test_doubles_ints_ply() {
     let file_path = "tests/sample_files/doubles_ints.ply";
@@ -202,9 +212,6 @@ fn run_trimesh_test(file_path: &str) {
         Err(e) => panic!("Failed to load TriMesh from {}: {}", file_path, e),
     }
 }
-
-use parry3d::math::Point;
-use parry3d::shape::{TriMesh, TriMeshFlags};
 
 /// Helper to round floats to two decimal places
 fn round_to_two_decimals(value: f32) -> f32 {

@@ -1,5 +1,4 @@
-use parry3d::math::Point;
-use parry3d::shape::{TriMesh, TriMeshFlags};
+use dae_parser::{ArrayElement, Document, GeometryElement, LibraryElement, Primitive, Semantic};
 use ply_rs_bw::parser::Parser;
 use ply_rs_bw::ply::{DefaultElement, Property};
 use std::fs::File;
@@ -7,6 +6,19 @@ use std::io::BufReader;
 use std::path::Path;
 use stl_io::read_stl;
 use tobj;
+
+#[cfg(feature = "parry17")]
+use {parry17::math::Point,
+     parry17::na::Point3,
+     parry17::shape::{TriMesh, TriMeshFlags}
+};
+
+#[cfg(feature = "parry18")]
+use {parry18::math::Point,
+     parry18::na::Point3,
+     parry18::shape::{TriMesh, TriMeshFlags}
+};
+
 
 /// Loads a 3D triangular mesh (TriMesh) from a given file, applies optional scaling
 /// and returns the constructed mesh. This function supports multiple formats.
@@ -104,7 +116,15 @@ pub fn load_trimesh_with_flags(
     }
 
     // Create and return the TriMesh
-    Ok(TriMesh::with_flags(vertices, indices, flags))
+    #[cfg(feature = "parry18")]
+    {
+        return TriMesh::with_flags(vertices, indices, flags).map_err(|e| e.to_string());
+    }
+
+    #[cfg(feature = "parry17")]
+    {
+        return Ok(TriMesh::with_flags(vertices, indices, flags))
+    }
 }
 
 /// Function to load a TriMesh from a PLY file
@@ -288,14 +308,7 @@ fn load_trimesh_from_obj(obj_file_path: &str) -> Result<(Vec<Point<f32>>, Vec<[u
     Ok((vertices, indices))
 }
 
-use dae_parser::{
-    ArrayElement, Document, GeometryElement, LibraryElement, Primitive, Semantic,
-};
-use parry3d::na::Point3;
-
-fn load_trimesh_from_dae(
-    dae_file_path: &str,
-) -> Result<(Vec<Point3<f32>>, Vec<[u32; 3]>), String> {
+fn load_trimesh_from_dae(dae_file_path: &str) -> Result<(Vec<Point3<f32>>, Vec<[u32; 3]>), String> {
     // Open the file
     let file = File::open(Path::new(dae_file_path))
         .map_err(|e| format!("Failed to open .dae file: {}", e))?;
@@ -312,7 +325,6 @@ fn load_trimesh_from_dae(
         if let LibraryElement::Geometries(geometry) = geometry {
             for item in geometry.items.iter() {
                 if let GeometryElement::Mesh(mesh) = &item.element {
-
                     let mut mesh_vertices = Vec::new();
                     let mut mesh_indices = Vec::new();
 
@@ -407,7 +419,7 @@ mod tests {
         fn point(x: f32, y: f32, z: f32) -> Point3<f32> {
             Point3::new(x, y, z)
         }
-        
+
         let mesh1 = (
             vec![
                 point(0.0, 0.0, 0.0),
