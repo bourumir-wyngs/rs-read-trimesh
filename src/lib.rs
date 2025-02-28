@@ -1,4 +1,6 @@
+use dae_parser::{ArrayElement, Document, GeometryElement, LibraryElement, Primitive, Semantic};
 use parry3d::math::Point;
+use parry3d::na::Point3;
 use parry3d::shape::{TriMesh, TriMeshFlags};
 use ply_rs_bw::parser::Parser;
 use ply_rs_bw::ply::{DefaultElement, Property};
@@ -104,7 +106,7 @@ pub fn load_trimesh_with_flags(
     }
 
     // Create and return the TriMesh
-    Ok(TriMesh::with_flags(vertices, indices, flags))
+    TriMesh::with_flags(vertices, indices, flags).map_err(|e| e.to_string())
 }
 
 /// Function to load a TriMesh from a PLY file
@@ -288,14 +290,7 @@ fn load_trimesh_from_obj(obj_file_path: &str) -> Result<(Vec<Point<f32>>, Vec<[u
     Ok((vertices, indices))
 }
 
-use dae_parser::{
-    ArrayElement, Document, GeometryElement, LibraryElement, Primitive, Semantic,
-};
-use parry3d::na::Point3;
-
-fn load_trimesh_from_dae(
-    dae_file_path: &str,
-) -> Result<(Vec<Point3<f32>>, Vec<[u32; 3]>), String> {
+fn load_trimesh_from_dae(dae_file_path: &str) -> Result<(Vec<Point3<f32>>, Vec<[u32; 3]>), String> {
     // Open the file
     let file = File::open(Path::new(dae_file_path))
         .map_err(|e| format!("Failed to open .dae file: {}", e))?;
@@ -312,7 +307,6 @@ fn load_trimesh_from_dae(
         if let LibraryElement::Geometries(geometry) = geometry {
             for item in geometry.items.iter() {
                 if let GeometryElement::Mesh(mesh) = &item.element {
-
                     let mut mesh_vertices = Vec::new();
                     let mut mesh_indices = Vec::new();
 
@@ -407,7 +401,7 @@ mod tests {
         fn point(x: f32, y: f32, z: f32) -> Point3<f32> {
             Point3::new(x, y, z)
         }
-        
+
         let mesh1 = (
             vec![
                 point(0.0, 0.0, 0.0),
