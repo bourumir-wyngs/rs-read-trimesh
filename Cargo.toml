@@ -14,7 +14,15 @@ edition = "2024"
 [dependencies]
 ply-rs-bw = "2.0.2"
 stl_io = "0.8"
-parry3d = "0.18"
 tobj = "4.0"
 dae-parser = "0.11.0"
-anyhow = "1.0"
+
+parry17 = { package = "parry3d", version = "0.17", optional = true }
+parry18 = { package = "parry3d", version = "0.18", optional = true }
+
+[features]
+use-parry-17 = ["parry17"]
+use-parry-18 = ["parry18"]
+default = ["parry17"]
+
+# cargo test --features use-parry-18 --no-default-features

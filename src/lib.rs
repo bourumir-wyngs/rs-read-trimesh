@@ -1,7 +1,4 @@
 use dae_parser::{ArrayElement, Document, GeometryElement, LibraryElement, Primitive, Semantic};
-use parry3d::math::Point;
-use parry3d::na::Point3;
-use parry3d::shape::{TriMesh, TriMeshFlags};
 use ply_rs_bw::parser::Parser;
 use ply_rs_bw::ply::{DefaultElement, Property};
 use std::fs::File;
@@ -9,6 +6,19 @@ use std::io::BufReader;
 use std::path::Path;
 use stl_io::read_stl;
 use tobj;
+
+#[cfg(feature = "parry17")]
+use {parry17::math::Point,
+     parry17::na::Point3,
+     parry17::shape::{TriMesh, TriMeshFlags}
+};
+
+#[cfg(feature = "parry18")]
+use {parry18::math::Point,
+     parry18::na::Point3,
+     parry18::shape::{TriMesh, TriMeshFlags}
+};
+
 
 /// Loads a 3D triangular mesh (TriMesh) from a given file, applies optional scaling
 /// and returns the constructed mesh. This function supports multiple formats.
@@ -106,7 +116,15 @@ pub fn load_trimesh_with_flags(
     }
 
     // Create and return the TriMesh
-    TriMesh::with_flags(vertices, indices, flags).map_err(|e| e.to_string())
+    #[cfg(feature = "parry18")]
+    {
+        return TriMesh::with_flags(vertices, indices, flags).map_err(|e| e.to_string());
+    }
+
+    #[cfg(feature = "parry17")]
+    {
+        return Ok(TriMesh::with_flags(vertices, indices, flags))
+    }
 }
 
 /// Function to load a TriMesh from a PLY file

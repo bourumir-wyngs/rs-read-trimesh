@@ -13,6 +13,22 @@ The versions 0.2.x support Parry3d v 0.18. It is different from v 0.17 so we nee
 ## Features
 The library provides a single function that reads a file into a `TriMesh` given its file path. It supports `.ply`, `.stl`, `.obj` and `.dae` (Collada) formats, with built-in robustness to handle the diverse data structures found in `.ply` files, which may use different data types.
 
+It is possible to use the library either with Parry 0.17 or 0.18 (they are incompatible). The Parry 0.17 is default
+and can be used simply as
+
+```toml
+   [dependencies]
+   rs-read-trimesh = "0.1.6"
+```
+
+If you want to use Parry 0.18, you need to disable default features and turn the feature use-parry-18 on:
+
+```toml
+   [dependencies]
+   rs-read-trimesh = { version = "0.1.6", default-features = false, features = ["use-parry-18"] }
+```
+
+
 ## Usage
 
 Here’s an example using the `load_trimesh` function to load a 3D model and apply a scaling factor:
