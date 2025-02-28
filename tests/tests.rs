@@ -1,6 +1,11 @@
 use rs_read_trimesh::{load_trimesh, load_trimesh_with_flags};
 use std::path::Path;
 
+#[cfg(feature = "parry13")]
+use {parry13::math::Point,
+     parry13::shape::{TriMesh, TriMeshFlags}
+};
+
 #[cfg(feature = "parry17")]
 use {parry17::math::Point,
      parry17::shape::{TriMesh, TriMeshFlags}

@@ -18,7 +18,9 @@ jobs:
     - uses: actions/checkout@v4
     - name: Build
       run: cargo build --verbose
-    - name: Run tests parry 0.17
+    - name: Run tests parry 0.14 to 0.17 (default)
       run: cargo test --verbose
     - name: Run tests parry 0.18
-      run: cargo test --features use-parry-18 --no-default-features
+      run: cargo test --verbose --features use-parry-18 --no-default-features
+    - name: Run tests parry 0.9 to 0.13 (legacy)
+      run: cargo test --verbose --features use-parry-9_13 --no-default-features

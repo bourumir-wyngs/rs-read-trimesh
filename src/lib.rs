@@ -7,18 +7,26 @@ use std::path::Path;
 use stl_io::read_stl;
 use tobj;
 
+#[cfg(feature = "parry13")]
+use {
+    parry13::math::Point,
+    parry13::na::Point3,
+    parry13::shape::{TriMesh, TriMeshFlags},
+};
+
 #[cfg(feature = "parry17")]
-use {parry17::math::Point,
-     parry17::na::Point3,
-     parry17::shape::{TriMesh, TriMeshFlags}
+use {
+    parry17::math::Point,
+    parry17::na::Point3,
+    parry17::shape::{TriMesh, TriMeshFlags},
 };
 
 #[cfg(feature = "parry18")]
-use {parry18::math::Point,
-     parry18::na::Point3,
-     parry18::shape::{TriMesh, TriMeshFlags}
+use {
+    parry18::math::Point,
+    parry18::na::Point3,
+    parry18::shape::{TriMesh, TriMeshFlags},
 };
-
 
 /// Loads a 3D triangular mesh (TriMesh) from a given file, applies optional scaling
 /// and returns the constructed mesh. This function supports multiple formats.
@@ -70,11 +78,15 @@ use {parry18::math::Point,
 /// }
 /// ```
 pub fn load_trimesh(file_path: &str, scale: f32) -> Result<TriMesh, String> {
-    load_trimesh_with_flags(
+    #[cfg(feature = "parry13")]
+    return load_trimesh_with_flags(file_path, scale, TriMeshFlags::MERGE_DUPLICATE_VERTICES);
+
+    #[cfg(any(feature = "parry18", feature = "parry17"))]
+    return load_trimesh_with_flags(
         file_path,
         scale,
         TriMeshFlags::FIX_INTERNAL_EDGES | TriMeshFlags::MERGE_DUPLICATE_VERTICES,
-    )
+    );
 }
 
 /// Loads a 3D triangular mesh (TriMesh) from a given file. Allows specifying flags
@@ -121,9 +133,9 @@ pub fn load_trimesh_with_flags(
         return TriMesh::with_flags(vertices, indices, flags).map_err(|e| e.to_string());
     }
 
-    #[cfg(feature = "parry17")]
+    #[cfg(any(feature = "parry13", feature = "parry17"))]
     {
-        return Ok(TriMesh::with_flags(vertices, indices, flags))
+        return Ok(TriMesh::with_flags(vertices, indices, flags));
     }
 }
 
