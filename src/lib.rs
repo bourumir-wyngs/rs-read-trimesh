@@ -104,11 +104,7 @@ pub fn load_trimesh_with_flags(
     }
 
     // Create and return the TriMesh
-    Ok(TriMesh::with_flags(
-        vertices,
-        indices,
-        flags
-    ))
+    Ok(TriMesh::with_flags(vertices, indices, flags))
 }
 
 /// Function to load a TriMesh from a PLY file
@@ -316,7 +312,7 @@ pub fn load_trimesh_from_dae(
         if let LibraryElement::Geometries(geometry) = geometry {
             for item in geometry.items.iter() {
                 if let GeometryElement::Mesh(mesh) = &item.element {
-                    println!("Mesh: {:?}", mesh);
+
                     let mut mesh_vertices = Vec::new();
                     let mut mesh_indices = Vec::new();
 
@@ -326,14 +322,11 @@ pub fn load_trimesh_from_dae(
                                 let source_uri = input.source.to_string();
                                 let source_id =
                                     source_uri.strip_prefix('#').unwrap_or(&*source_uri);
-                                println!("Vertice input position source: {:?}", source_id);
+
                                 for source in mesh.sources.iter() {
                                     if let Some(id) = &source.id {
-                                        println!("Source id: {:?} ", id);
                                         if id == &source_id {
-                                            println!("Source: {:?} found", source);
                                             if let Some(positions) = &source.array {
-                                                println!("Array: {:?}", positions);
                                                 if let ArrayElement::Float(positions) = positions {
                                                     mesh_vertices.reserve(positions.len() / 3);
                                                     for pos in positions.chunks_exact(3) {
@@ -348,11 +341,7 @@ pub fn load_trimesh_from_dae(
                                 }
                             }
                         }
-                        println!(
-                            "Mesh vertices: {}, {:?}",
-                            mesh_vertices.len(),
-                            mesh_vertices
-                        );
+
                         for primitive in mesh.elements.iter() {
                             if let Primitive::Triangles(triangles) = primitive {
                                 if let Some(prim) = &triangles.data.prim {
@@ -373,17 +362,11 @@ pub fn load_trimesh_from_dae(
     if meshes.is_empty() {
         Err("The file contains no mesh".to_string())
     } else {
-        let merged = merge_meshes(meshes);
-        println!(
-            "Merged mesh: {} vertices, {} indices",
-            merged.0.len(),
-            merged.1.len()
-        );
-        Ok(merged)
+        Ok(merge_meshes(meshes))
     }
 }
 
-pub fn merge_meshes(
+fn merge_meshes(
     meshes: Vec<(Vec<Point3<f32>>, Vec<[u32; 3]>)>,
 ) -> (Vec<Point3<f32>>, Vec<[u32; 3]>) {
     if meshes.len() == 1 {

@@ -47,8 +47,7 @@ fn main() {
 The `scale` parameter allows you to scale all the vertices of the mesh. Setting `scale = 1.0` will result in no scaling. Scaling ply files seems quite a frequent case as they are unit-agnostic.
 
 ### Limitations
-For .dae, triangle meshes are supported (this format may contain lots of other stuff). If the .dae file contains 
-multiple meshes, they are merged.
+For .dae, only triangle meshes are supported (this format may contain lots of other stuff). If the .dae file contains multiple meshes, they are merged.
 
 ## Dependencies
 
@@ -66,4 +65,5 @@ You **do not need to add these dependencies manually** to your `Cargo.toml`. The
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License (see the [LICENSE](LICENSE) file for details). Some testing material
+is under Apache v 2.0.
