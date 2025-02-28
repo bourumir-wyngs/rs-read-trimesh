@@ -293,7 +293,7 @@ use dae_parser::{
 };
 use parry3d::na::Point3;
 
-pub fn load_trimesh_from_dae(
+fn load_trimesh_from_dae(
     dae_file_path: &str,
 ) -> Result<(Vec<Point3<f32>>, Vec<[u32; 3]>), String> {
     // Open the file
