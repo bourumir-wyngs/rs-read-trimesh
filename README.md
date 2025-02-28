@@ -11,15 +11,6 @@
 ## Features
 The library provides a single function that reads a file into a `TriMesh` given its file path. It supports `.ply`, `.stl`, `.obj` and `.dae` (Collada) formats, with built-in robustness to handle the diverse data structures found in `.ply` files, which may use different data types.
 
-## Installation
-
-To use this library, add the following to your `Cargo.toml`:
-
-```toml
-[dependencies]
-rs-read-trimesh = "0.1.2"
-```
-
 ## Usage
 
 Here’s an example using the `load_trimesh` function to load a 3D model and apply a scaling factor:
