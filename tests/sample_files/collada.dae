@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1">
+    <asset>
+        <contributor>
+            <author>Bourumir Wyngs</author>
+        </contributor>
+        <created>2025-02-28T12:00:00Z</created>
+        <modified>2025-02-28T12:00:00Z</modified>
+        <unit name="meter" meter="1.0"/>
+        <up_axis>Z_UP</up_axis>
+    </asset>
+
+    <library_geometries>
+        <geometry id="triangle_mesh" name="Triangle">
+            <mesh>
+                <!-- Vertex Positions -->
+                <source id="triangle_positions">
+                    <float_array id="triangle_positions_array" count="9">
+                        -0.7 2.1 0
+                         1.4 4.2 0
+                        -3.5 4.9 0
+                    </float_array>
+                    <technique_common>
+                        <accessor source="#triangle_positions_array" count="3" stride="3">
+                            <param name="X" type="float"/>
+                            <param name="Y" type="float"/>
+                            <param name="Z" type="float"/>
+                        </accessor>
+                    </technique_common>
+                </source>
+
+                <!-- Vertex Indexing -->
+                <vertices id="triangle_vertices">
+                    <input semantic="POSITION" source="#triangle_positions"/>
+                </vertices>
+
+                <triangles count="1">
+                    <input semantic="VERTEX" source="#triangle_vertices" offset="0"/>
+                    <p>0 1 2</p>
+                </triangles>
+            </mesh>
+        </geometry>
+    </library_geometries>
+
+    <library_visual_scenes>
+        <visual_scene id="scene">
+            <node id="TriangleNode">
+                <instance_geometry url="#triangle_mesh"/>
+            </node>
+        </visual_scene>
+    </library_visual_scenes>
+
+    <scene>
+        <instance_visual_scene url="#scene"/>
+    </scene>
+</COLLADA>

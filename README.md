@@ -9,7 +9,7 @@
 `rs-read-trimesh` is a Rust library for loading 3D triangular meshes from files in various 3D formats. The main motivation behind this library is that existing readers do not directly output the format we work with (Parry's `TriMesh`) and require additional boilerplate code, which would be better implemented as a separate dependency.
 
 ## Features
-The library provides a single function that reads a file into a `TriMesh` given its file path. It supports `.ply`, `.stl`, and `.obj` formats, with built-in robustness to handle the diverse data structures found in `.ply` files, which may use different data types.
+The library provides a single function that reads a file into a `TriMesh` given its file path. It supports `.ply`, `.stl`, `.obj` and `.dae` (Collada) formats, with built-in robustness to handle the diverse data structures found in `.ply` files, which may use different data types.
 
 ## Installation
 
@@ -17,7 +17,7 @@ To use this library, add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-rs-read-trimesh = "0.1.0"
+rs-read-trimesh = "0.1.1"
 ```
 
 ## Usage
@@ -46,6 +46,9 @@ fn main() {
 
 The `scale` parameter allows you to scale all the vertices of the mesh. Setting `scale = 1.0` will result in no scaling. Scaling ply files seems quite a frequent case as they are unit-agnostic.
 
+### Limitations
+For .dae, only triangle meshes are supported (this format may contain lots of other stuff). If the .dae file contains multiple meshes, they are merged.
+
 ## Dependencies
 
 The following crates are used to power the functionality of this library:
@@ -53,6 +56,7 @@ The following crates are used to power the functionality of this library:
 - [`ply-rs-bw`](https://crates.io/crates/ply-rs-bw): A library for reading and writing PLY files.
 - [`stl_io`](https://crates.io/crates/stl_io): A library for reading and writing STL files.
 - [`tobj`](https://crates.io/crates/tobj): A library for loading OBJ files.
+- [`dae-parser`](https://crates.io/crates/dae-parser): A library for loading Collada (DAE) files.
 - [`parry3d`](https://crates.io/crates/parry3d): Provides 3D geometry processing for physical simulations. 
 
 Parry is only used as much here as its mesh data structure is involved.
@@ -61,4 +65,4 @@ You **do not need to add these dependencies manually** to your `Cargo.toml`. The
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License (see the [LICENSE](LICENSE) file for details). Some testing material is under Apache v 2.0.

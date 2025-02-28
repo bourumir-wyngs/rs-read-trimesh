@@ -7,12 +7,13 @@ homepage = "https://github.com/bourumir-wyngs/rs-read-trimesh"
 repository = "https://github.com/bourumir-wyngs/rs-read-trimesh.git"
 license = "MIT"
 readme = "README.md"
-keywords = ["trimesh", "PLY", "STL", "OBJ"]
+keywords = ["trimesh", "PLY", "STL", "OBJ", "DAE"]
 categories = ["filesystem", "parser-implementations"]
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 ply-rs-bw = "2.0.1"
 stl_io = "0.8"
 parry3d = "0.17"
 tobj = "4.0"
+dae-parser = "0.11.0"
