@@ -55,7 +55,7 @@ use tobj;
 ///     Err(e) => {
 ///         eprintln!("Failed to load mesh: {}", e);
 ///     }
-/// }///
+/// }
 /// ```
 pub fn load_trimesh(file_path: &str, scale: f32) -> Result<TriMesh, String> {
     load_trimesh_with_flags(
