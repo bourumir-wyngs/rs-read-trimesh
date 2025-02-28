@@ -3,7 +3,7 @@ use parry3d::shape::{TriMesh, TriMeshFlags};
 use ply_rs_bw::parser::Parser;
 use ply_rs_bw::ply::{DefaultElement, Property};
 use std::fs::File;
-use std::io::{BufReader};
+use std::io::BufReader;
 use std::path::Path;
 use stl_io::read_stl;
 use tobj;
@@ -18,6 +18,9 @@ use tobj;
 /// * `scale` - A floating-point value used to apply scaling to the vertex data.
 ///             If `scale` is 1.0, no scaling is applied. For ply files scaling is more part of
 ///             the format, as they are unit-agnostic and may come in meters, millimeters or inches.
+///
+/// This function applies flags FIX_INTERNAL_EDGES and MERGE_DUPLICATE_VERTICES. For precise control
+/// over flags, use `load_trimesh_with_flags`
 ///
 /// # Returns
 ///
@@ -34,7 +37,7 @@ use tobj;
 /// # Errors
 ///
 /// Returns an error in the following cases:
-/// * If the file extension is not supported (not `.stl`, `.ply`, or `.obj`).
+/// * If the file extension is not supported (not `.stl`, `.ply`,`.obj` or `.dae`).
 /// * If the file cannot be read or parsed by the respective loader.
 ///
 /// # Example
@@ -52,9 +55,24 @@ use tobj;
 ///     Err(e) => {
 ///         eprintln!("Failed to load mesh: {}", e);
 ///     }
-/// }
+/// }///
 /// ```
 pub fn load_trimesh(file_path: &str, scale: f32) -> Result<TriMesh, String> {
+    load_trimesh_with_flags(
+        file_path,
+        scale,
+        TriMeshFlags::FIX_INTERNAL_EDGES | TriMeshFlags::MERGE_DUPLICATE_VERTICES,
+    )
+}
+
+/// Loads a 3D triangular mesh (TriMesh) from a given file. Allows specifying flags
+/// (that is important if default flags make unwanted changes of the mesh content).
+/// See `load_trimesh,` for example, and a more detailed description.
+pub fn load_trimesh_with_flags(
+    file_path: &str,
+    scale: f32,
+    flags: TriMeshFlags,
+) -> Result<TriMesh, String> {
     let path = Path::new(file_path);
     let mut vertices;
     let indices;
@@ -69,6 +87,7 @@ pub fn load_trimesh(file_path: &str, scale: f32) -> Result<TriMesh, String> {
         Some("stl") => load_trimesh_from_stl(file_path)?,
         Some("ply") => load_trimesh_from_ply(file_path)?,
         Some("obj") => load_trimesh_from_obj(file_path)?,
+        Some("dae") => load_trimesh_from_dae(file_path)?,
         _ => {
             return Err(format!(
                 "Unsupported file extension for '{}', only .stl, .ply, and .obj are supported.",
@@ -88,14 +107,12 @@ pub fn load_trimesh(file_path: &str, scale: f32) -> Result<TriMesh, String> {
     Ok(TriMesh::with_flags(
         vertices,
         indices,
-        TriMeshFlags::FIX_INTERNAL_EDGES | TriMeshFlags::MERGE_DUPLICATE_VERTICES,
+        flags
     ))
 }
 
 /// Function to load a TriMesh from a PLY file
-fn load_trimesh_from_ply(
-    ply_file_path: &str,
-) -> Result<(Vec<Point<f32>>, Vec<[u32; 3]>), String> {
+fn load_trimesh_from_ply(ply_file_path: &str) -> Result<(Vec<Point<f32>>, Vec<[u32; 3]>), String> {
     // Open the file
     let file = File::open(ply_file_path)
         .map_err(|err| format!("Could not open PLY file '{}': {}", ply_file_path, err))?;
@@ -206,9 +223,7 @@ where
 }
 
 /// Function to load a TriMesh from an STL file
-fn load_trimesh_from_stl(
-    stl_file_path: &str,
-) -> Result<(Vec<Point<f32>>, Vec<[u32; 3]>), String> {
+fn load_trimesh_from_stl(stl_file_path: &str) -> Result<(Vec<Point<f32>>, Vec<[u32; 3]>), String> {
     // Open the STL file
     let file = File::open(stl_file_path)
         .map_err(|err| format!("Could not open STL file {}: {}", stl_file_path, err))?;
@@ -247,9 +262,7 @@ fn load_trimesh_from_stl(
 }
 
 /// Function to load a TriMesh from an OBJ file
-fn load_trimesh_from_obj(
-    obj_file_path: &str,
-) -> Result<(Vec<Point<f32>>, Vec<[u32; 3]>), String> {
+fn load_trimesh_from_obj(obj_file_path: &str) -> Result<(Vec<Point<f32>>, Vec<[u32; 3]>), String> {
     // Load the OBJ file using the `tobj` library
     let (models, _) = tobj::load_obj(obj_file_path, &tobj::LoadOptions::default())
         .map_err(|e| format!("Failed to load OBJ file '{}': {}", obj_file_path, e))?;
@@ -272,10 +285,172 @@ fn load_trimesh_from_obj(
         indices.extend(
             mesh.indices
                 .chunks_exact(3)
-                .map(|chunk| [chunk[0] as u32, chunk[1] as u32, chunk[2] as u32]),
+                .map(|chunk| [chunk[0], chunk[1], chunk[2]]),
         );
     }
 
     Ok((vertices, indices))
 }
 
+use dae_parser::{
+    ArrayElement, Document, GeometryElement, LibraryElement, Primitive, Semantic, Source, Vertices,
+};
+use parry3d::na::Point3;
+
+pub fn load_trimesh_from_dae(
+    dae_file_path: &str,
+) -> Result<(Vec<Point3<f32>>, Vec<[u32; 3]>), String> {
+    // Open the file
+    let file = File::open(Path::new(dae_file_path))
+        .map_err(|e| format!("Failed to open .dae file: {}", e))?;
+    let reader = BufReader::new(file);
+
+    // Parse the Collada document
+    let document =
+        Document::from_reader(reader).map_err(|e| format!("Failed to parse .dae file {:?}", e))?;
+
+    let mut meshes = Vec::new();
+
+    // Iterate through geometries in the document
+    for geometry in document.library.iter() {
+        if let LibraryElement::Geometries(geometry) = geometry {
+            for item in geometry.items.iter() {
+                if let GeometryElement::Mesh(mesh) = &item.element {
+                    println!("Mesh: {:?}", mesh);
+                    let mut mesh_vertices = Vec::new();
+                    let mut mesh_indices = Vec::new();
+
+                    if let Some(vertices) = &mesh.vertices {
+                        for input in vertices.inputs.iter() {
+                            if input.semantic == Semantic::Position {
+                                let source_uri = input.source.to_string();
+                                let source_id =
+                                    source_uri.strip_prefix('#').unwrap_or(&*source_uri);
+                                println!("Vertice input position source: {:?}", source_id);
+                                for source in mesh.sources.iter() {
+                                    if let Some(id) = &source.id {
+                                        println!("Source id: {:?} ", id);
+                                        if id == &source_id {
+                                            println!("Source: {:?} found", source);
+                                            if let Some(positions) = &source.array {
+                                                println!("Array: {:?}", positions);
+                                                if let ArrayElement::Float(positions) = positions {
+                                                    mesh_vertices.reserve(positions.len() / 3);
+                                                    for pos in positions.chunks_exact(3) {
+                                                        mesh_vertices.push(Point3::new(
+                                                            pos[0], pos[1], pos[2],
+                                                        ));
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        println!(
+                            "Mesh vertices: {}, {:?}",
+                            mesh_vertices.len(),
+                            mesh_vertices
+                        );
+                        for primitive in mesh.elements.iter() {
+                            if let Primitive::Triangles(triangles) = primitive {
+                                if let Some(prim) = &triangles.data.prim {
+                                    for pos in prim.chunks_exact(3) {
+                                        // It is already 3 member vectors of u32
+                                        mesh_indices.push([pos[0], pos[1], pos[2]]);
+                                    }
+                                }
+                            }
+                        }
+                        meshes.push((mesh_vertices, mesh_indices));
+                    }
+                }
+            }
+        }
+    }
+
+    if meshes.is_empty() {
+        Err("The file contains no mesh".to_string())
+    } else {
+        let merged = merge_meshes(meshes);
+        println!(
+            "Merged mesh: {} vertices, {} indices",
+            merged.0.len(),
+            merged.1.len()
+        );
+        Ok(merged)
+    }
+}
+
+pub fn merge_meshes(
+    meshes: Vec<(Vec<Point3<f32>>, Vec<[u32; 3]>)>,
+) -> (Vec<Point3<f32>>, Vec<[u32; 3]>) {
+    if meshes.len() == 1 {
+        println!("Found single mesh:");
+        return meshes.into_iter().next().unwrap();
+    }
+
+    let mut merged_vertices = Vec::new();
+    let mut merged_indices = Vec::new();
+    let mut vertex_offset = 0u32;
+
+    for (vertices, indices) in meshes {
+        // Add vertices
+        merged_vertices.extend(vertices.iter().cloned());
+
+        // Adjust indices and add them
+        merged_indices.extend(
+            indices
+                .into_iter()
+                .map(|[i0, i1, i2]| [i0 + vertex_offset, i1 + vertex_offset, i2 + vertex_offset]),
+        );
+
+        // Update vertex offset for next mesh
+        vertex_offset += vertices.len() as u32;
+    }
+
+    (merged_vertices, merged_indices)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_merge_meshes() {
+        let mesh1 = (
+            vec![
+                Point3::new(0.0, 0.0, 0.0),
+                Point3::new(1.0, 0.0, 0.0),
+                Point3::new(0.0, 1.0, 0.0),
+            ],
+            vec![[0, 1, 2]],
+        );
+
+        let mesh2 = (
+            vec![
+                Point3::new(1.0, 1.0, 0.0),
+                Point3::new(2.0, 1.0, 0.0),
+                Point3::new(1.0, 2.0, 0.0),
+            ],
+            vec![[0, 1, 2]],
+        );
+
+        let (merged_vertices, merged_indices) = merge_meshes(vec![mesh1, mesh2]);
+
+        let expected_vertices = vec![
+            Point3::new(0.0, 0.0, 0.0),
+            Point3::new(1.0, 0.0, 0.0),
+            Point3::new(0.0, 1.0, 0.0),
+            Point3::new(1.0, 1.0, 0.0),
+            Point3::new(2.0, 1.0, 0.0),
+            Point3::new(1.0, 2.0, 0.0),
+        ];
+
+        let expected_indices = vec![[0, 1, 2], [3, 4, 5]];
+
+        assert_eq!(merged_vertices, expected_vertices);
+        assert_eq!(merged_indices, expected_indices);
+    }
+}
