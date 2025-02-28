@@ -289,7 +289,7 @@ fn load_trimesh_from_obj(obj_file_path: &str) -> Result<(Vec<Point<f32>>, Vec<[u
 }
 
 use dae_parser::{
-    ArrayElement, Document, GeometryElement, LibraryElement, Primitive, Semantic, Source, Vertices,
+    ArrayElement, Document, GeometryElement, LibraryElement, Primitive, Semantic,
 };
 use parry3d::na::Point3;
 
