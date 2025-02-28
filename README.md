@@ -18,14 +18,14 @@ and can be used simply as
 
 ```toml
    [dependencies]
-   rs-read-trimesh = "0.1.6"
+   rs-read-trimesh = "0.1.7"
 ```
 
-If you want to use Parry 0.18, you need to disable default features and turn the feature use-parry-18 on:
+If you want to use Parry 0.18, you need to disable default features and turn the feature `use-parry-18` on:
 
 ```toml
    [dependencies]
-   rs-read-trimesh = { version = "0.1.6", default-features = false, features = ["use-parry-18"] }
+   rs-read-trimesh = { version = "0.1.7", default-features = false, features = ["use-parry-18"] }
 ```
 
 
