@@ -17,7 +17,7 @@ To use this library, add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-rs-read-trimesh = "0.1.1"
+rs-read-trimesh = "0.1.2"
 ```
 
 ## Usage
