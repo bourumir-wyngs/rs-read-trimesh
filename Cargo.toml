@@ -1,6 +1,6 @@
 [package]
 name = "rs-read-trimesh"
-version = "0.1.4"
+version = "0.1.6"
 authors = ["Bourumir Wyngs"]
 description = "A reader for loading 3D meshes from PLY, STL, and OBJ into Parry Trimesh."
 homepage = "https://github.com/bourumir-wyngs/rs-read-trimesh"
@@ -12,7 +12,7 @@ categories = ["filesystem", "parser-implementations"]
 edition = "2024"
 
 [dependencies]
-ply-rs-bw = "2.0.1"
+ply-rs-bw = "2.0.2"
 stl_io = "0.8"
 parry3d = "0.17"
 tobj = "4.0"

@@ -517,9 +517,9 @@ checksum = "e3148f5046208a5d56bcfc03053e3ca6334e51da8dfb19b6cdc8b306fae3283e"
 
 [[package]]
 name = "ply-rs-bw"
-version = "2.0.1"
+version = "2.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "05411dbff65935a22e400f00c3989e2fa5002f2fa2bac81b521351e4b71f3a02"
+checksum = "2468331832f131d33d570e31f29d48954f75322be17f0303f90299649a69a324"
 dependencies = [
  "byteorder",
  "linked-hash-map",
@@ -599,7 +599,7 @@ checksum = "cbf4a6aa5f6d6888f39e980649f3ad6b666acdce1d78e95b8a2cb076e687ae30"
 
 [[package]]
 name = "rs-read-trimesh"
-version = "0.1.4"
+version = "0.1.6"
 dependencies = [
  "dae-parser",
  "parry3d",
