@@ -11,9 +11,9 @@ use {parry17::math::Point,
      parry17::shape::{TriMesh, TriMeshFlags}
 };
 
-#[cfg(feature = "parry18")]
-use {parry18::math::Point,
-     parry18::shape::{TriMesh, TriMeshFlags}
+#[cfg(feature = "parry18_19")]
+use {parry18_19::math::Point,
+     parry18_19::shape::{TriMesh, TriMeshFlags}
 };
 
 #[test]

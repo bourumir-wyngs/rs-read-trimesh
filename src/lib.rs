@@ -21,11 +21,11 @@ use {
     parry17::shape::{TriMesh, TriMeshFlags},
 };
 
-#[cfg(feature = "parry18")]
+#[cfg(feature = "parry18_19")]
 use {
-    parry18::math::Point,
-    parry18::na::Point3,
-    parry18::shape::{TriMesh, TriMeshFlags},
+    parry18_19::math::Point,
+    parry18_19::na::Point3,
+    parry18_19::shape::{TriMesh, TriMeshFlags},
 };
 
 /// Loads a 3D triangular mesh (TriMesh) from a given file, applies optional scaling
@@ -81,7 +81,7 @@ pub fn load_trimesh(file_path: &str, scale: f32) -> Result<TriMesh, String> {
     #[cfg(feature = "parry13")]
     return load_trimesh_with_flags(file_path, scale, TriMeshFlags::MERGE_DUPLICATE_VERTICES);
 
-    #[cfg(any(feature = "parry18", feature = "parry17"))]
+    #[cfg(any(feature = "parry18_19", feature = "parry17"))]
     return load_trimesh_with_flags(
         file_path,
         scale,
@@ -128,7 +128,7 @@ pub fn load_trimesh_with_flags(
     }
 
     // Create and return the TriMesh
-    #[cfg(feature = "parry18")]
+    #[cfg(feature = "parry18_19")]
     {
         return TriMesh::with_flags(vertices, indices, flags).map_err(|e| e.to_string());
     }
