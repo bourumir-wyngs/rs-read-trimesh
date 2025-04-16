@@ -18,20 +18,20 @@ The Parry 0.14 through 0.17 inclusive is the default setting and can be used sim
 
 ```toml
    [dependencies]
-   rs-read-trimesh = "0.1.7"
+   rs-read-trimesh = "0.1.8"
 ```
 
-If you want to use Parry 0.18, you need to disable default features and turn the feature `use-parry-18` on:
+If you want to use Parry 0.18 or 0.19, you need to disable default features and turn the feature `use-parry-18` on:
 
 ```toml
    [dependencies]
-   rs-read-trimesh = { version = "0.1.7", default-features = false, features = ["use-parry-18"] }
+   rs-read-trimesh = { version = "0.1.8", default-features = false, features = ["use-parry-18_19"] }
 ```
 
 Finally, you can also use Parry 0.9 through 0.13 if you work with legacy versions
 ```toml
    [dependencies]
-   rs-read-trimesh = { version = "0.1.7", default-features = false, features = ["use-parry-9_13"] }
+   rs-read-trimesh = { version = "0.1.8", default-features = false, features = ["use-parry-9_13"] }
 ```
 
 ## Usage
