@@ -8,30 +8,31 @@
 
 `rs-read-trimesh` is a Rust library for loading 3D triangular meshes from files in various 3D formats. The main motivation behind this library is that existing readers do not directly output the format we work with (Parry's `TriMesh`) and require additional boilerplate code, which would be better implemented as a separate dependency.
 
-The versions 0.2.x support Parry3d v 0.18. It is different from v 0.17 so we need a different code for working with its mesh.
+The version 2.0.0 supports Parry versions from 0.9 through 0.19 inclusive, but you may need to specify which one
+to be used (see examples below)
 
 ## Features
 The library provides a single function that reads a file into a `TriMesh` given its file path. It supports `.ply`, `.stl`, `.obj` and `.dae` (Collada) formats, with built-in robustness to handle the diverse data structures found in `.ply` files, which may use different data types.
 
-It is possible to use the library either with Parry from 0.14 to 0.17 or alternatively 0.18 (that gets incompatible). 
-The Parry 0.14 through 0.17 inclusive is the default setting and can be used simply as
+It is possible to use the library either with Parry from 0.14 to 0.17 or alternatively 0.18+ (that gets incompatible). 
+The Parry 0.17 through 0.18 inclusive is the default setting and can be used simply as
 
 ```toml
    [dependencies]
-   rs-read-trimesh = "0.1.8"
+   rs-read-trimesh = "2.0.0"
 ```
 
-If you want to use Parry 0.18 or 0.19, you need to disable default features and turn the feature `use-parry-18` on:
+If you want to use Parry 0.14 through 0.17, you need to disable default features and turn the feature `use-parry-14_17` on:
 
 ```toml
    [dependencies]
-   rs-read-trimesh = { version = "0.1.8", default-features = false, features = ["use-parry-18_19"] }
+   rs-read-trimesh = { version = "2.0.0", default-features = false, features = ["use-parry-14_17"] }
 ```
 
 Finally, you can also use Parry 0.9 through 0.13 if you work with legacy versions
 ```toml
    [dependencies]
-   rs-read-trimesh = { version = "0.1.8", default-features = false, features = ["use-parry-9_13"] }
+   rs-read-trimesh = { version = "2.0.0", default-features = false, features = ["use-parry-9_13"] }
 ```
 
 ## Usage
