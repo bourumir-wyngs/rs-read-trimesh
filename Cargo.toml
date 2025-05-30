@@ -1,6 +1,6 @@
 [package]
 name = "rs-read-trimesh"
-version = "2.0.1"
+version = "2.0.2"
 authors = ["Bourumir Wyngs"]
 description = "A reader for loading 3D meshes from PLY, STL, DAE (Collada) and OBJ into Parry Trimesh."
 homepage = "https://github.com/bourumir-wyngs/rs-read-trimesh"
