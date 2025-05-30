@@ -368,10 +368,21 @@ fn load_trimesh_from_dae(dae_file_path: &str) -> Result<(Vec<Point3<f32>>, Vec<[
 
                         for primitive in mesh.elements.iter() {
                             if let Primitive::Triangles(triangles) = primitive {
-                                if let Some(prim) = &triangles.data.prim {
-                                    for pos in prim.chunks_exact(3) {
-                                        // It is already 3 member vectors of u32
-                                        mesh_indices.push([pos[0], pos[1], pos[2]]);
+                                // only add indices if the input semantic is a vertex
+                                if let Some(vertex_input) = triangles.inputs.inputs.iter().
+                                    find(|input| { input.semantic == Semantic::Vertex }) {
+                                    let offset = vertex_input.offset as usize;
+                                    let num_semantics = triangles.inputs.inputs.len();
+                                    mesh_indices.reserve(triangles.count * 3);
+
+                                    if let Some(prim) = &triangles.data.prim {
+                                        for pos in prim.chunks_exact(num_semantics * 3) {
+                                            mesh_indices.push([
+                                                pos[offset],
+                                                pos[num_semantics + offset],
+                                                pos[(2 * num_semantics) + offset]
+                                            ])
+                                        }
                                     }
                                 }
                             }
