@@ -563,9 +563,9 @@ dependencies = [
 
 [[package]]
 name = "parry3d"
-version = "0.22.0-beta.1"
+version = "0.21.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1d866b7e9e63a05780111b13f275e1a398a60f34b6749392b53369fe4eb5520"
+checksum = "e7f8d0a3b2f4c0e250d4599b69e490535521c3497e2b88b0b5d2ada251bc83a8"
 dependencies = [
  "approx",
  "arrayvec",
@@ -582,9 +582,7 @@ dependencies = [
  "rstar",
  "simba 0.9.0",
  "slab",
- "smallvec",
  "spade",
- "static_assertions",
  "thiserror",
 ]
 
@@ -711,11 +709,11 @@ checksum = "cbf4a6aa5f6d6888f39e980649f3ad6b666acdce1d78e95b8a2cb076e687ae30"
 
 [[package]]
 name = "rs-read-trimesh"
-version = "2.0.2"
+version = "2.0.3"
 dependencies = [
  "dae-parser",
  "parry3d 0.14.0",
- "parry3d 0.22.0-beta.1",
+ "parry3d 0.21.1",
  "parry3d 0.9.0",
  "ply-rs-bw",
  "stl_io",
@@ -915,12 +913,6 @@ name = "stable_deref_trait"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
-
-[[package]]
-name = "static_assertions"
-version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "stl_io"

@@ -8,7 +8,7 @@
 
 `rs-read-trimesh` is a Rust library for loading 3D triangular meshes from files in various 3D formats. The main motivation behind this library is that existing readers do not directly output the format we work with (Parry's `TriMesh`) and require additional boilerplate code, which would be better implemented as a separate dependency.
 
-The version 2.0.0 supports Parry versions from 0.9 through 0.19 inclusive, but you may need to specify which one
+The version 2.0.3 supports Parry versions from 0.9 through 0.24 inclusive, but you for old Parry releases you may need to specify which one
 to be used (see examples below)
 
 ## Features
@@ -18,20 +18,20 @@ Unlike in 1.x versions, using the newest versions is the default setting. The Pa
 
 ```toml
    [dependencies]
-   rs-read-trimesh = "2.0.1"
+   rs-read-trimesh = "2.0.3"
 ```
 
 If you want to use Parry 0.14 through 0.17, you need to disable default features and turn the feature `use-parry-14_17` on:
 
 ```toml
    [dependencies]
-   rs-read-trimesh = { version = "2.0.1", default-features = false, features = ["use-parry-14_17"] }
+   rs-read-trimesh = { version = "2.0.3", default-features = false, features = ["use-parry-14_17"] }
 ```
 
 Finally, you can also use Parry 0.9 through 0.13 if you work with legacy versions
 ```toml
    [dependencies]
-   rs-read-trimesh = { version = "2.0.1", default-features = false, features = ["use-parry-9_13"] }
+   rs-read-trimesh = { version = "2.0.3", default-features = false, features = ["use-parry-9_13"] }
 ```
 
 ## Usage
