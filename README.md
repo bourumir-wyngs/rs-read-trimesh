@@ -14,7 +14,7 @@ to be used (see examples below)
 ## Features
 The library provides a single function that reads a file into a `TriMesh` given its file path. It supports `.ply`, `.stl`, `.obj` and `.dae` (Collada) formats, with built-in robustness to handle the diverse data structures found in `.ply` files, which may use different data types.
 
-Unlike in 1.x versions, using the newest versions is the default setting. The Parry 0.18 through 0.21 inclusive can be used simply as
+Unlike in 1.x versions, using the newest versions is the default setting. The Parry 0.18 through 0.23 inclusive can be used simply as
 
 ```toml
    [dependencies]
