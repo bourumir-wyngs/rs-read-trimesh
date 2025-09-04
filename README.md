@@ -74,7 +74,7 @@ The following crates are used to power the functionality of this library:
 - [`parry3d`](https://crates.io/crates/parry3d): Provides 3D geometry processing for physical simulations. 
 
 Parry is only used as much here as its mesh data structure is involved. As mentioned, versions from as old as 0.9
-to the recent 0.18 are supported.
+to the recent are supported.
 
 You **do not need to add these dependencies manually** to your `Cargo.toml`. They are automatically resolved by Cargo when you include `rs-read-trimesh` or any of the mentioned libraries.
 
