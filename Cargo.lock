@@ -234,9 +234,9 @@ dependencies = [
 
 [[package]]
 name = "foldhash"
-version = "0.1.5"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d9c4f5dac5e15c24eb999c26181a6ca40b39fe946cbe4c263c7209467bc83af2"
+checksum = "77ce24cb58228fbb8aa041425bb1050850ac19177686ea6e0f41a70416f56fdb"
 
 [[package]]
 name = "getrandom"
@@ -372,9 +372,9 @@ dependencies = [
 
 [[package]]
 name = "hashbrown"
-version = "0.15.4"
+version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5971ac85611da7067dbfcabef3c70ebb5606018acd9e2a3903a0da507521e0d5"
+checksum = "5419bdc4f6a9207fbeba6d11b604d481addf78ecd10c11ad51e76c2f6482748d"
 dependencies = [
  "foldhash",
 ]
@@ -537,11 +537,23 @@ dependencies = [
  "glam 0.29.3",
  "glam 0.30.5",
  "matrixmultiply",
+ "nalgebra-macros",
  "num-complex",
  "num-rational",
  "num-traits",
  "simba 0.9.0",
  "typenum",
+]
+
+[[package]]
+name = "nalgebra-macros"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "973e7178a678cfd059ccec50887658d482ce16b0aa9da3888ddeab5cd5eb4889"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.90",
 ]
 
 [[package]]
@@ -675,9 +687,9 @@ dependencies = [
 
 [[package]]
 name = "parry3d"
-version = "0.23.0"
+version = "0.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1ef9c6706eddddd1e5d60a4742e66734d4984045cc3cc3ad29caff835306b9b1"
+checksum = "e6f02d098003d45982f41f9884941438e7e90eadf5e542389e7188e5b404d5ab"
 dependencies = [
  "approx",
  "arrayvec",
@@ -685,7 +697,8 @@ dependencies = [
  "downcast-rs 2.0.1",
  "either",
  "ena",
- "hashbrown 0.15.4",
+ "foldhash",
+ "hashbrown 0.16.0",
  "log",
  "nalgebra 0.34.0",
  "num-derive 0.4.2",
@@ -823,11 +836,11 @@ checksum = "cbf4a6aa5f6d6888f39e980649f3ad6b666acdce1d78e95b8a2cb076e687ae30"
 
 [[package]]
 name = "rs-read-trimesh"
-version = "2.0.4"
+version = "2.0.5"
 dependencies = [
  "dae-parser",
  "parry3d 0.14.0",
- "parry3d 0.23.0",
+ "parry3d 0.25.0",
  "parry3d 0.9.0",
  "ply-rs-bw",
  "stl_io",
