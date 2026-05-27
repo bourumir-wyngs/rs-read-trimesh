@@ -11,24 +11,31 @@
 ## Features
 The library provides a single function that reads a file into a `TriMesh` given its file path. It supports `.ply`, `.stl`, `.obj` and `.dae` (Collada) formats, with built-in robustness to handle the diverse data structures found in `.ply` files, which may use different data types.
 
-Unlike in 1.x versions, using the newest versions is the default setting. The Parry 0.18 through 0.25 inclusive can be used simply as
+Unlike in 1.x versions, using the newest versions is the default setting. Parry 0.26 can be used simply as
 
 ```toml
    [dependencies]
-   rs-read-trimesh = "2.0.5"
+   rs-read-trimesh = "2.0.8"
+```
+
+If you want to use Parry 0.18 through 0.25, you need to disable default features and turn the feature `use-parry-18_19` on:
+
+```toml
+   [dependencies]
+   rs-read-trimesh = { version = "2.0.8", default-features = false, features = ["use-parry-18_19"] }
 ```
 
 If you want to use Parry 0.14 through 0.17, you need to disable default features and turn the feature `use-parry-14_17` on:
 
 ```toml
    [dependencies]
-   rs-read-trimesh = { version = "2.0.5", default-features = false, features = ["use-parry-14_17"] }
+   rs-read-trimesh = { version = "2.0.8", default-features = false, features = ["use-parry-14_17"] }
 ```
 
 Finally, you can also use Parry 0.9 through 0.13 if you work with legacy versions
 ```toml
    [dependencies]
-   rs-read-trimesh = { version = "2.0.5", default-features = false, features = ["use-parry-9_13"] }
+   rs-read-trimesh = { version = "2.0.8", default-features = false, features = ["use-parry-9_13"] }
 ```
 
 ## Usage
