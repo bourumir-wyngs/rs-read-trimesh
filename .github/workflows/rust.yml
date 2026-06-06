@@ -13,14 +13,24 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: default (parry 0.18 to 0.26)
+            command: cargo test --verbose
+          - name: parry 0.9 to 0.13
+            command: cargo test --verbose --features use-parry-9_13 --no-default-features
+          - name: parry 0.14 to 0.17
+            command: cargo test --verbose --features use-parry-14_17 --no-default-features
+          - name: parry 0.18 to 0.26
+            command: cargo test --verbose --features use-parry-18_19 --no-default-features
+          - name: parry 0.27
+            command: cargo test --verbose --features use-parry-27 --no-default-features
+          - name: parry 0.28
+            command: cargo test --verbose --features use-parry-28 --no-default-features
 
     steps:
     - uses: actions/checkout@v4
-    - name: Build
-      run: cargo build --verbose
-    - name: Run tests parry 0.14 to 0.17 (default)
-      run: cargo test --verbose
-    - name: Run tests parry 0.18
-      run: cargo test --verbose --features use-parry-18_19 --no-default-features
-    - name: Run tests parry 0.9 to 0.13 (legacy)
-      run: cargo test --verbose --features use-parry-9_13 --no-default-features
+    - name: Run tests - ${{ matrix.name }}
+      run: ${{ matrix.command }}
