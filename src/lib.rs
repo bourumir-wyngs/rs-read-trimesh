@@ -8,25 +8,19 @@ use stl_io::read_stl;
 use tobj;
 
 #[cfg(feature = "parry13")]
-use {
-    parry13::math::Point,
-    parry13::na::Point3,
-    parry13::shape::{TriMesh, TriMeshFlags},
-};
+use parry13::shape::{TriMesh, TriMeshFlags};
 
 #[cfg(feature = "parry17")]
-use {
-    parry17::math::Point,
-    parry17::na::Point3,
-    parry17::shape::{TriMesh, TriMeshFlags},
-};
+use parry17::shape::{TriMesh, TriMeshFlags};
 
 #[cfg(feature = "parry_19")]
-use {
-    parry_19::math::Point,
-    parry_19::na::Point3,
-    parry_19::shape::{TriMesh, TriMeshFlags},
-};
+use parry_19::shape::{TriMesh, TriMeshFlags};
+
+#[cfg(feature = "parry_27")]
+use parry_27::shape::{TriMesh, TriMeshFlags};
+
+#[cfg(feature = "parry_28")]
+use parry_28::shape::{TriMesh, TriMeshFlags};
 
 /// Loads a 3D triangular mesh (TriMesh) from a given file, applies optional scaling
 /// and returns the constructed mesh. This function supports multiple formats.
@@ -81,7 +75,12 @@ pub fn load_trimesh(file_path: &str, scale: f32) -> Result<TriMesh, String> {
     #[cfg(feature = "parry13")]
     return load_trimesh_with_flags(file_path, scale, TriMeshFlags::MERGE_DUPLICATE_VERTICES);
 
-    #[cfg(any(feature = "parry_19", feature = "parry17"))]
+    #[cfg(any(
+        feature = "parry_19",
+        feature = "parry17",
+        feature = "parry_27",
+        feature = "parry_28"
+    ))]
     return load_trimesh_with_flags(
         file_path,
         scale,
@@ -128,7 +127,7 @@ pub fn load_trimesh_with_flags(
     }
 
     // Create and return the TriMesh
-    #[cfg(feature = "parry_19")]
+    #[cfg(any(feature = "parry_19", feature = "parry_27", feature = "parry_28"))]
     {
         return TriMesh::with_flags(vertices, indices, flags).map_err(|e| e.to_string());
     }
@@ -140,7 +139,10 @@ pub fn load_trimesh_with_flags(
 }
 
 /// Function to load a TriMesh from a PLY file
-fn load_trimesh_from_ply(ply_file_path: &str) -> Result<(Vec<Point<f32>>, Vec<[u32; 3]>), String> {
+fn load_trimesh_from_ply<V>(ply_file_path: &str) -> Result<(Vec<V>, Vec<[u32; 3]>), String>
+where
+    V: From<[f32; 3]>,
+{
     // Open the file
     let file = File::open(ply_file_path)
         .map_err(|err| format!("Could not open .ply file '{}': {}", ply_file_path, err))?;
@@ -186,7 +188,7 @@ fn load_trimesh_from_ply(ply_file_path: &str) -> Result<(Vec<Point<f32>>, Vec<[u
                     _ => Err("Unexpected type for vertex 'z' coordinate".to_string()),
                 })?;
 
-            vertices.push(Point::new(x, y, z));
+            vertices.push([x, y, z].into());
         }
     } else {
         return Err("No 'vertex' payload found in the .ply file".to_string());
@@ -251,7 +253,10 @@ where
 }
 
 /// Function to load a TriMesh from an STL file
-fn load_trimesh_from_stl(stl_file_path: &str) -> Result<(Vec<Point<f32>>, Vec<[u32; 3]>), String> {
+fn load_trimesh_from_stl<V>(stl_file_path: &str) -> Result<(Vec<V>, Vec<[u32; 3]>), String>
+where
+    V: From<[f32; 3]>,
+{
     // Open the STL file
     let file = File::open(stl_file_path)
         .map_err(|err| format!("Could not open STL file {}: {}", stl_file_path, err))?;
@@ -261,11 +266,11 @@ fn load_trimesh_from_stl(stl_file_path: &str) -> Result<(Vec<Point<f32>>, Vec<[u
     let stl = read_stl(&mut reader)
         .map_err(|err| format!("Could not parse STL file {}: {}", stl_file_path, err))?;
 
-    // Extract vertices and convert them to Point3<f32>
-    let vertices: Vec<Point<f32>> = stl
+    // Extract vertices and let the active Parry version infer its vertex type.
+    let vertices: Vec<V> = stl
         .vertices
         .into_iter()
-        .map(|vertex| Point::new(vertex[0], vertex[1], vertex[2]))
+        .map(|vertex| [vertex[0], vertex[1], vertex[2]].into())
         .collect();
 
     // Convert face indices from `usize` to `u32` and handle any potential issues
@@ -290,7 +295,10 @@ fn load_trimesh_from_stl(stl_file_path: &str) -> Result<(Vec<Point<f32>>, Vec<[u
 }
 
 /// Function to load a TriMesh from an OBJ file
-fn load_trimesh_from_obj(obj_file_path: &str) -> Result<(Vec<Point<f32>>, Vec<[u32; 3]>), String> {
+fn load_trimesh_from_obj<V>(obj_file_path: &str) -> Result<(Vec<V>, Vec<[u32; 3]>), String>
+where
+    V: From<[f32; 3]>,
+{
     // Load the OBJ file using the `tobj` library
     let (models, _) = tobj::load_obj(obj_file_path, &tobj::LoadOptions::default())
         .map_err(|e| format!("Failed to load .obj file '{}': {}", obj_file_path, e))?;
@@ -306,7 +314,7 @@ fn load_trimesh_from_obj(obj_file_path: &str) -> Result<(Vec<Point<f32>>, Vec<[u
         vertices.extend(
             mesh.positions
                 .chunks_exact(3)
-                .map(|chunk| Point::new(chunk[0], chunk[1], chunk[2])),
+                .map(|chunk| [chunk[0], chunk[1], chunk[2]].into()),
         );
 
         // Extract indices (assume triangulated mesh)
@@ -320,7 +328,10 @@ fn load_trimesh_from_obj(obj_file_path: &str) -> Result<(Vec<Point<f32>>, Vec<[u
     Ok((vertices, indices))
 }
 
-fn load_trimesh_from_dae(dae_file_path: &str) -> Result<(Vec<Point3<f32>>, Vec<[u32; 3]>), String> {
+fn load_trimesh_from_dae<V>(dae_file_path: &str) -> Result<(Vec<V>, Vec<[u32; 3]>), String>
+where
+    V: Clone + From<[f32; 3]>,
+{
     // Open the file
     let file = File::open(Path::new(dae_file_path))
         .map_err(|e| format!("Failed to open .dae file: {}", e))?;
@@ -354,9 +365,8 @@ fn load_trimesh_from_dae(dae_file_path: &str) -> Result<(Vec<Point3<f32>>, Vec<[
                                                 if let ArrayElement::Float(positions) = positions {
                                                     mesh_vertices.reserve(positions.len() / 3);
                                                     for pos in positions.chunks_exact(3) {
-                                                        mesh_vertices.push(Point3::new(
-                                                            pos[0], pos[1], pos[2],
-                                                        ));
+                                                        mesh_vertices
+                                                            .push([pos[0], pos[1], pos[2]].into());
                                                     }
                                                 }
                                             }
@@ -369,8 +379,12 @@ fn load_trimesh_from_dae(dae_file_path: &str) -> Result<(Vec<Point3<f32>>, Vec<[
                         for primitive in mesh.elements.iter() {
                             if let Primitive::Triangles(triangles) = primitive {
                                 // only add indices if the input semantic is a vertex
-                                if let Some(vertex_input) = triangles.inputs.inputs.iter().
-                                    find(|input| { input.semantic == Semantic::Vertex }) {
+                                if let Some(vertex_input) = triangles
+                                    .inputs
+                                    .inputs
+                                    .iter()
+                                    .find(|input| input.semantic == Semantic::Vertex)
+                                {
                                     let offset = vertex_input.offset as usize;
                                     let num_semantics = triangles.inputs.inputs.len();
                                     mesh_indices.reserve(triangles.count * 3);
@@ -380,7 +394,7 @@ fn load_trimesh_from_dae(dae_file_path: &str) -> Result<(Vec<Point3<f32>>, Vec<[
                                             mesh_indices.push([
                                                 pos[offset],
                                                 pos[num_semantics + offset],
-                                                pos[(2 * num_semantics) + offset]
+                                                pos[(2 * num_semantics) + offset],
                                             ])
                                         }
                                     }
@@ -404,9 +418,7 @@ fn load_trimesh_from_dae(dae_file_path: &str) -> Result<(Vec<Point3<f32>>, Vec<[
     }
 }
 
-fn merge_meshes(
-    meshes: Vec<(Vec<Point3<f32>>, Vec<[u32; 3]>)>,
-) -> (Vec<Point3<f32>>, Vec<[u32; 3]>) {
+fn merge_meshes<V: Clone>(meshes: Vec<(Vec<V>, Vec<[u32; 3]>)>) -> (Vec<V>, Vec<[u32; 3]>) {
     if meshes.len() == 1 {
         return meshes.into_iter().next().unwrap();
     }
@@ -439,8 +451,8 @@ mod tests {
 
     #[test]
     fn test_merge_meshes() {
-        fn point(x: f32, y: f32, z: f32) -> Point3<f32> {
-            Point3::new(x, y, z)
+        fn point(x: f32, y: f32, z: f32) -> [f32; 3] {
+            [x, y, z]
         }
 
         let mesh1 = (
