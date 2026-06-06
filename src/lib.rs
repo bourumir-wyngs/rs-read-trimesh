@@ -7,19 +7,88 @@ use std::path::Path;
 use stl_io::read_stl;
 use tobj;
 
+#[cfg(not(any(
+    feature = "parry13",
+    feature = "parry17",
+    feature = "parry_19",
+    feature = "parry_26",
+    feature = "parry_27",
+    feature = "parry_28"
+)))]
+compile_error!(
+    "Enable exactly one Parry backend feature: use-parry-9_13, use-parry-14_17, use-parry-18_19, use-parry-26, use-parry-27, or use-parry-28."
+);
+
+#[cfg(any(
+    all(
+        feature = "parry13",
+        any(
+            feature = "parry17",
+            feature = "parry_19",
+            feature = "parry_26",
+            feature = "parry_27",
+            feature = "parry_28"
+        )
+    ),
+    all(
+        feature = "parry17",
+        any(
+            feature = "parry_19",
+            feature = "parry_26",
+            feature = "parry_27",
+            feature = "parry_28"
+        )
+    ),
+    all(
+        feature = "parry_19",
+        any(feature = "parry_26", feature = "parry_27", feature = "parry_28")
+    ),
+    all(feature = "parry_26", any(feature = "parry_27", feature = "parry_28")),
+    all(feature = "parry_27", feature = "parry_28")
+))]
+compile_error!(
+    "Enable only one Parry backend feature. Disable default features when selecting a non-default Parry version."
+);
+
 #[cfg(feature = "parry13")]
 use parry13::shape::{TriMesh, TriMeshFlags};
 
-#[cfg(feature = "parry17")]
+#[cfg(all(not(feature = "parry13"), feature = "parry17"))]
 use parry17::shape::{TriMesh, TriMeshFlags};
 
-#[cfg(feature = "parry_19")]
+#[cfg(all(
+    not(any(feature = "parry13", feature = "parry17")),
+    feature = "parry_19"
+))]
 use parry_19::shape::{TriMesh, TriMeshFlags};
 
-#[cfg(feature = "parry_27")]
+#[cfg(all(
+    not(any(feature = "parry13", feature = "parry17", feature = "parry_19")),
+    feature = "parry_26"
+))]
+use parry_26::shape::{TriMesh, TriMeshFlags};
+
+#[cfg(all(
+    not(any(
+        feature = "parry13",
+        feature = "parry17",
+        feature = "parry_19",
+        feature = "parry_26"
+    )),
+    feature = "parry_27"
+))]
 use parry_27::shape::{TriMesh, TriMeshFlags};
 
-#[cfg(feature = "parry_28")]
+#[cfg(all(
+    not(any(
+        feature = "parry13",
+        feature = "parry17",
+        feature = "parry_19",
+        feature = "parry_26",
+        feature = "parry_27"
+    )),
+    feature = "parry_28"
+))]
 use parry_28::shape::{TriMesh, TriMeshFlags};
 
 /// Loads a 3D triangular mesh (TriMesh) from a given file, applies optional scaling
@@ -78,6 +147,7 @@ pub fn load_trimesh(file_path: &str, scale: f32) -> Result<TriMesh, String> {
     #[cfg(any(
         feature = "parry_19",
         feature = "parry17",
+        feature = "parry_26",
         feature = "parry_27",
         feature = "parry_28"
     ))]
@@ -127,7 +197,12 @@ pub fn load_trimesh_with_flags(
     }
 
     // Create and return the TriMesh
-    #[cfg(any(feature = "parry_19", feature = "parry_27", feature = "parry_28"))]
+    #[cfg(any(
+        feature = "parry_19",
+        feature = "parry_26",
+        feature = "parry_27",
+        feature = "parry_28"
+    ))]
     {
         return TriMesh::with_flags(vertices, indices, flags).map_err(|e| e.to_string());
     }

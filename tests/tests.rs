@@ -4,16 +4,42 @@ use std::path::Path;
 #[cfg(feature = "parry13")]
 use parry13::shape::{TriMesh, TriMeshFlags};
 
-#[cfg(feature = "parry17")]
+#[cfg(all(not(feature = "parry13"), feature = "parry17"))]
 use parry17::shape::{TriMesh, TriMeshFlags};
 
-#[cfg(feature = "parry_19")]
+#[cfg(all(
+    not(any(feature = "parry13", feature = "parry17")),
+    feature = "parry_19"
+))]
 use parry_19::shape::{TriMesh, TriMeshFlags};
 
-#[cfg(feature = "parry_27")]
+#[cfg(all(
+    not(any(feature = "parry13", feature = "parry17", feature = "parry_19")),
+    feature = "parry_26"
+))]
+use parry_26::shape::{TriMesh, TriMeshFlags};
+
+#[cfg(all(
+    not(any(
+        feature = "parry13",
+        feature = "parry17",
+        feature = "parry_19",
+        feature = "parry_26"
+    )),
+    feature = "parry_27"
+))]
 use parry_27::shape::{TriMesh, TriMeshFlags};
 
-#[cfg(feature = "parry_28")]
+#[cfg(all(
+    not(any(
+        feature = "parry13",
+        feature = "parry17",
+        feature = "parry_19",
+        feature = "parry_26",
+        feature = "parry_27"
+    )),
+    feature = "parry_28"
+))]
 use parry_28::shape::{TriMesh, TriMeshFlags};
 
 #[test]
@@ -185,6 +211,15 @@ fn test_collada_robot() {
             panic!("Failed to load TriMesh from {}: {}", file_path, e);
         }
     }
+}
+
+#[cfg(feature = "parry_26")]
+#[test]
+fn test_parry_26_feature_loads_trimesh() {
+    let mesh = load_trimesh("tests/sample_files/object.obj", 1.0)
+        .expect("use-parry-26 should load an OBJ mesh");
+
+    assert!(verify_trimesh_content(&mesh));
 }
 
 #[cfg(feature = "parry_27")]
