@@ -121,6 +121,22 @@ The `scale` parameter allows you to scale all the vertices of the mesh. Setting 
 ### Limitations
 For .dae, only triangle meshes are supported (this format may contain lots of other stuff). If the .dae file contains multiple meshes, they are merged.
 
+Empty meshes and triangle indices outside their mesh's vertex range are rejected
+for every Parry backend.
+
+Every format reads its document the same way: the path must be a regular file,
+so a named pipe, a terminal, or a device such as `/dev/zero` is rejected instead
+of blocking the caller or growing an unbounded buffer. Documents are limited to
+256 MiB, except COLLADA, which is limited to 64 MiB because its parser allocates
+from declared element counts. Reading a document has a five-second deadline. At
+most 16 file-reading workers can run at once, including operations that remain
+blocked in the operating system after the caller times out; waiting for a worker
+counts toward the deadline. These limits do not bound later geometry processing.
+
+COLLADA input is additionally limited to 128 XML nesting levels and 128
+attributes per element. Counts and offsets are checked before the COLLADA parser
+allocates arrays or constructs geometry.
+
 OBJ material libraries (`mtllib`) are ignored and never opened. Material names
 do not affect the returned geometry.
 
@@ -138,6 +154,11 @@ data URIs, and GLB buffers are supported. Absolute paths, `file:` or other
 external URI schemes, Windows drive/backslash paths, and paths or symlinks
 escaping that directory are rejected. Keep an untrusted model and its buffers
 in a dedicated directory containing only resources it may read.
+
+External glTF buffers follow the same rules as documents: each must be a regular
+file of at most 256 MiB, with a 512 MiB total budget for imported buffers
+(including embedded buffers and padding). Opening the model directory and
+importing all of a document's buffers each have their own five-second deadline.
 
 ## Dependencies
 
@@ -162,6 +183,10 @@ See [the vendored dependency notes](vendor/minidom-14/README.md) for the
 source, changes, and tests. Cargo does not propagate this root patch to
 projects consuming `rs-read-trimesh`; those projects need their own patch
 until a fixed dependency release is available.
+
+The loader also preflights every COLLADA document with a direct `quick-xml` 0.41
+dependency and the limits above. This protection applies to downstream consumers
+even when Cargo does not apply this checkout's `minidom-14` patch.
 
 ## License
 

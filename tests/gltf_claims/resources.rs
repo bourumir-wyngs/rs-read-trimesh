@@ -376,3 +376,152 @@ fn encoded_windows_drive_prefix_is_rejected_when_literal_filename_exists() {
         "decoded Windows drive prefixes must be rejected"
     );
 }
+
+#[test]
+fn oversized_sparse_buffer_is_rejected_before_reading() {
+    let (document, buffer) = triangle();
+    let fixture = Fixture::new(&document, &buffer);
+    fs::OpenOptions::new()
+        .write(true)
+        .open(fixture.directory.join("buffer.bin"))
+        .unwrap()
+        .set_len(256 * 1024 * 1024 + 1)
+        .unwrap();
+
+    let error = load(&fixture).unwrap_err();
+    assert!(error.contains("byte limit"), "{error}");
+}
+
+#[test]
+fn oversized_main_document_is_rejected_before_reading() {
+    let (document, buffer) = triangle();
+    let fixture = Fixture::new(&document, &buffer);
+    fs::OpenOptions::new()
+        .write(true)
+        .open(&fixture.path)
+        .unwrap()
+        .set_len(256 * 1024 * 1024 + 1)
+        .unwrap();
+
+    let error = load(&fixture).unwrap_err();
+    assert!(error.contains("byte limit"), "{error}");
+}
+
+#[test]
+fn excessive_declared_buffer_length_is_rejected_before_io() {
+    let (mut document, buffer) = triangle();
+    document["buffers"][0]["byteLength"] = (256_u64 * 1024 * 1024 + 1).into();
+    // This also verifies that the size check runs before opening a sidecar.
+    document["buffers"][0]["uri"] = "missing.bin".into();
+    let fixture = Fixture::new(&document, &buffer);
+
+    let error = load(&fixture).unwrap_err();
+    assert!(error.contains("byte limit"), "{error}");
+}
+
+#[test]
+fn excessive_aggregate_declared_buffer_length_is_rejected_before_io() {
+    let (mut document, buffer) = triangle();
+    let large = json(r#"{"byteLength":268435456,"uri":"missing.bin"}"#);
+    document["buffers"]
+        .as_array_mut()
+        .unwrap()
+        .extend([large.clone(), large]);
+    let fixture = Fixture::new(&document, &buffer);
+
+    let error = load(&fixture).unwrap_err();
+    assert!(error.contains("byte limit"), "{error}");
+}
+
+#[test]
+fn directory_buffer_is_rejected() {
+    let (mut document, buffer) = triangle();
+    document["buffers"][0]["uri"] = "nested".into();
+    let fixture = Fixture::new(&document, &buffer);
+    let directory = OwnedPath(fixture.directory.join("nested"));
+    fs::create_dir(&directory.0).unwrap();
+
+    assert!(load(&fixture).is_err(), "a directory is not a buffer");
+}
+
+#[cfg(unix)]
+fn make_fifo(path: &Path) {
+    use std::os::unix::ffi::OsStrExt;
+    let path = std::ffi::CString::new(path.as_os_str().as_bytes()).unwrap();
+    // SAFETY: path is a live NUL-terminated string, and mkfifo retains no pointer.
+    let result = unsafe { libc::mkfifo(path.as_ptr(), 0o600) };
+    assert_eq!(result, 0, "{}", std::io::Error::last_os_error());
+}
+
+#[cfg(unix)]
+fn check_fifo_child() -> bool {
+    let Some(path) = std::env::var_os("RS_READ_TRIMESH_GLTF_FIFO_CHILD") else {
+        return false;
+    };
+    let error =
+        super::load_trimesh_with_flags(path.to_str().unwrap(), 1.0, super::TriMeshFlags::empty())
+            .unwrap_err();
+    assert!(error.contains("regular files"), "{error}");
+    true
+}
+
+#[cfg(unix)]
+fn assert_fifo_rejected_promptly(fixture: &Fixture, test: &str) {
+    use std::time::{Duration, Instant};
+    // A subprocess bounds the regression test even if a future change removes
+    // nonblocking opens and the production timeout together.
+    let mut child = std::process::Command::new(std::env::current_exe().unwrap())
+        .args(["--exact", test, "--nocapture"])
+        .env("RS_READ_TRIMESH_GLTF_FIFO_CHILD", &fixture.path)
+        .stdout(std::process::Stdio::null())
+        .spawn()
+        .unwrap();
+    let deadline = Instant::now() + Duration::from_secs(3);
+    loop {
+        if let Some(status) = child.try_wait().unwrap() {
+            assert!(status.success(), "FIFO rejection subprocess failed");
+            return;
+        }
+        if Instant::now() >= deadline {
+            let _ = child.kill();
+            let _ = child.wait();
+            panic!("FIFO resource read did not return promptly");
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn fifo_buffer_is_rejected_without_waiting_for_a_writer() {
+    if check_fifo_child() {
+        return;
+    }
+    let (document, buffer) = triangle();
+    let fixture = Fixture::new(&document, &buffer);
+    let path = fixture.directory.join("buffer.bin");
+    fs::remove_file(&path).unwrap();
+    make_fifo(&path);
+
+    assert_fifo_rejected_promptly(
+        &fixture,
+        "resources::fifo_buffer_is_rejected_without_waiting_for_a_writer",
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn fifo_document_is_rejected_without_waiting_for_a_writer() {
+    if check_fifo_child() {
+        return;
+    }
+    let (document, buffer) = triangle();
+    let fixture = Fixture::new(&document, &buffer);
+    fs::remove_file(&fixture.path).unwrap();
+    make_fifo(&fixture.path);
+
+    assert_fifo_rejected_promptly(
+        &fixture,
+        "resources::fifo_document_is_rejected_without_waiting_for_a_writer",
+    );
+}

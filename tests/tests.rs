@@ -1,6 +1,7 @@
 use rs_read_trimesh::{load_trimesh, load_trimesh_with_flags};
 use std::path::Path;
 
+mod mesh_validation;
 mod obj_resources;
 
 #[cfg(feature = "parry13")]

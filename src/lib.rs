@@ -1,11 +1,13 @@
 use dae_parser::{ArrayElement, Document, GeometryElement, LibraryElement, Primitive, Semantic};
 use ply_rs_bw::parser::Parser;
 use ply_rs_bw::ply::{DefaultElement, Property};
-use std::fs::File;
-use std::io::BufReader;
+use std::io::Cursor;
 use std::path::Path;
 use stl_io::read_stl;
 use tobj;
+
+mod dae_validation;
+mod file_read;
 
 #[cfg(feature = "gltf")]
 mod gltf_buffers;
@@ -211,6 +213,7 @@ use parry_31::shape::{TriMesh, TriMeshFlags};
 /// Returns an error in the following cases:
 /// * If the file extension is not supported.
 /// * If the file cannot be read or parsed by the respective loader.
+/// * If the mesh is empty, has invalid indices, or exceeds the documented input limits.
 ///
 /// # Example
 ///
@@ -283,6 +286,11 @@ pub fn load_trimesh_with_flags(
         }
     };
 
+    if indices.is_empty() {
+        return Err("The mesh contains no triangles".to_string());
+    }
+    validate_indices(vertices.len(), &indices)?;
+
     // Apply scaling in place to all vertices
     if (scale - 1.0).abs() > f32::EPSILON {
         for vertex in &mut vertices {
@@ -310,15 +318,27 @@ pub fn load_trimesh_with_flags(
     }
 }
 
+fn validate_indices(vertex_count: usize, indices: &[[u32; 3]]) -> Result<(), String> {
+    if indices
+        .iter()
+        .flatten()
+        .any(|&index| index as usize >= vertex_count)
+    {
+        return Err("Triangle index is outside the mesh vertex range".to_string());
+    }
+    Ok(())
+}
+
 /// Function to load a TriMesh from a PLY file
 fn load_trimesh_from_ply<V>(ply_file_path: &str) -> Result<(Vec<V>, Vec<[u32; 3]>), String>
 where
     V: From<[f32; 3]>,
 {
-    // Open the file
-    let file = File::open(ply_file_path)
+    // Read the bounded document first: a FIFO or device must never block the
+    // parser, and an oversized file must never be streamed into memory.
+    let bytes = file_read::read_document(Path::new(ply_file_path), file_read::MAX_DOCUMENT_BYTES)
         .map_err(|err| format!("Could not open .ply file '{}': {}", ply_file_path, err))?;
-    let mut reader = BufReader::new(file);
+    let mut reader = Cursor::new(bytes);
 
     // Create a PLY parser and parse the header
     let parser = Parser::<DefaultElement>::new();
@@ -429,10 +449,11 @@ fn load_trimesh_from_stl<V>(stl_file_path: &str) -> Result<(Vec<V>, Vec<[u32; 3]
 where
     V: From<[f32; 3]>,
 {
-    // Open the STL file
-    let file = File::open(stl_file_path)
+    // Read the bounded document first: a FIFO or device must never block the
+    // parser, and an oversized file must never be streamed into memory.
+    let bytes = file_read::read_document(Path::new(stl_file_path), file_read::MAX_DOCUMENT_BYTES)
         .map_err(|err| format!("Could not open STL file {}: {}", stl_file_path, err))?;
-    let mut reader = BufReader::new(file);
+    let mut reader = Cursor::new(bytes);
 
     // Read the STL file into IndexedMesh
     let stl = read_stl(&mut reader)
@@ -478,19 +499,23 @@ where
         .parent()
         .filter(|path| !path.as_os_str().is_empty())
         .unwrap_or_else(|| Path::new("."));
-    let base = cap_std::fs::Dir::open_ambient_dir(base_path, cap_std::ambient_authority())
-        .map_err(|e| {
-            format!(
-                "Failed to open glTF directory '{}': {}",
-                base_path.display(),
-                e
-            )
-        })?;
+    let base = gltf_buffers::open_directory(base_path).map_err(|e| {
+        format!(
+            "Failed to open glTF directory '{}': {}",
+            base_path.display(),
+            e
+        )
+    })?;
     let contents = open_gltf(gltf_file_path)
         .map_err(|e| format!("Failed to load file '{}': {}", gltf_file_path, e))?;
 
-    let buffers = gltf_buffers::import_buffers(&contents.document, &base, contents.blob)
-        .map_err(|e| format!("Failed to load buffers for file '{}': {}", gltf_file_path, e))?;
+    let buffers =
+        gltf_buffers::import_buffers(&contents.document, &base, contents.blob).map_err(|e| {
+            format!(
+                "Failed to load buffers for file '{}': {}",
+                gltf_file_path, e
+            )
+        })?;
 
     // Collect vertices and indices
     let mut vertices = Vec::new();
@@ -605,7 +630,7 @@ where
 /// Checks the preconditions that gltf 1.4.1 assumes during parsing and import.
 #[cfg(feature = "gltf")]
 fn open_gltf(path: &str) -> Result<gltf::Gltf, String> {
-    let bytes = std::fs::read(path).map_err(|e| e.to_string())?;
+    let bytes = gltf_buffers::read_document(Path::new(path))?;
     if bytes.starts_with(b"glTF") {
         let length_bytes: [u8; 4] = bytes
             .get(8..12)
@@ -698,18 +723,18 @@ fn load_trimesh_from_obj<V>(obj_file_path: &str) -> Result<(Vec<V>, Vec<[u32; 3]
 where
     V: From<[f32; 3]>,
 {
-    let (models, _) = File::open(obj_file_path)
-        .map_err(|_| tobj::LoadError::OpenFileFailed)
-        .and_then(|file| {
-            // Materials are unused. Never resolve mtllib paths: even material-name
-            // lookups can expose local file contents by changing model splitting.
-            tobj::load_obj_buf(
-                &mut BufReader::new(file),
-                &tobj::LoadOptions::default(),
-                |_| Ok((Vec::new(), Default::default())),
-            )
-        })
+    // Read the bounded document first: a FIFO or device must never block the
+    // parser, and an oversized file must never be streamed into memory.
+    let bytes = file_read::read_document(Path::new(obj_file_path), file_read::MAX_DOCUMENT_BYTES)
         .map_err(|e| format!("Failed to load .obj file '{}': {}", obj_file_path, e))?;
+    // Materials are unused. Never resolve mtllib paths: even material-name
+    // lookups can expose local file contents by changing model splitting.
+    let (models, _) = tobj::load_obj_buf(
+        &mut Cursor::new(bytes),
+        &tobj::LoadOptions::default(),
+        |_| Ok((Vec::new(), Default::default())),
+    )
+    .map_err(|e| format!("Failed to load .obj file '{}': {}", obj_file_path, e))?;
 
     // Collect vertices and indices
     let mut vertices = Vec::new();
@@ -740,14 +765,15 @@ fn load_trimesh_from_dae<V>(dae_file_path: &str) -> Result<(Vec<V>, Vec<[u32; 3]
 where
     V: Clone + From<[f32; 3]>,
 {
-    // Open the file
-    let file = File::open(Path::new(dae_file_path))
+    // Read the bounded document first: a FIFO or device must never block the
+    // parser, and an oversized file must never be streamed into memory.
+    let bytes = dae_validation::read_document(Path::new(dae_file_path))
         .map_err(|e| format!("Failed to open .dae file: {}", e))?;
-    let reader = BufReader::new(file);
+    dae_validation::validate(&bytes)?;
 
     // Parse the Collada document
-    let document =
-        Document::from_reader(reader).map_err(|e| format!("Failed to parse .dae file {:?}", e))?;
+    let document = Document::from_reader(bytes.as_slice())
+        .map_err(|e| format!("Failed to parse .dae file {:?}", e))?;
 
     let mut meshes = Vec::new();
 
@@ -794,22 +820,42 @@ where
                                     .find(|input| input.semantic == Semantic::Vertex)
                                 {
                                     let offset = vertex_input.offset as usize;
-                                    let num_semantics = triangles.inputs.inputs.len();
-                                    mesh_indices.reserve(triangles.count * 3);
+                                    let width = triangles
+                                        .inputs
+                                        .inputs
+                                        .iter()
+                                        .map(|input| input.offset as usize)
+                                        .max()
+                                        .and_then(|offset| offset.checked_add(1))
+                                        .ok_or("Invalid COLLADA input offsets")?;
+                                    let tuple_size = width
+                                        .checked_mul(3)
+                                        .ok_or("COLLADA triangle tuple is too large")?;
+                                    let prim = triangles.data.prim.as_deref().unwrap_or(&[]);
+                                    if prim.len() % tuple_size != 0
+                                        || triangles.count != prim.len() / tuple_size
+                                    {
+                                        return Err(
+                                            "COLLADA triangle count does not match index data"
+                                                .to_string(),
+                                        );
+                                    }
+                                    mesh_indices.try_reserve(prim.len() / tuple_size).map_err(
+                                        |e| format!("Cannot allocate COLLADA triangles: {e}"),
+                                    )?;
 
-                                    if let Some(prim) = &triangles.data.prim {
-                                        for pos in prim.chunks_exact(num_semantics * 3) {
-                                            mesh_indices.push([
-                                                pos[offset],
-                                                pos[num_semantics + offset],
-                                                pos[(2 * num_semantics) + offset],
-                                            ])
-                                        }
+                                    for pos in prim.chunks_exact(tuple_size) {
+                                        mesh_indices.push([
+                                            pos[offset],
+                                            pos[width + offset],
+                                            pos[(2 * width) + offset],
+                                        ])
                                     }
                                 }
                             }
                         }
 
+                        validate_indices(mesh_vertices.len(), &mesh_indices)?;
                         if !mesh_vertices.is_empty() {
                             meshes.push((mesh_vertices, mesh_indices));
                         }
@@ -822,13 +868,23 @@ where
     if meshes.is_empty() {
         Err("The .dae file contains no mesh".to_string())
     } else {
-        Ok(merge_meshes(meshes))
+        merge_meshes(meshes)
     }
 }
 
-fn merge_meshes<V: Clone>(meshes: Vec<(Vec<V>, Vec<[u32; 3]>)>) -> (Vec<V>, Vec<[u32; 3]>) {
+fn merge_meshes<V: Clone>(
+    meshes: Vec<(Vec<V>, Vec<[u32; 3]>)>,
+) -> Result<(Vec<V>, Vec<[u32; 3]>), String> {
+    let mut total_vertices = 0u32;
+    for (vertices, indices) in &meshes {
+        validate_indices(vertices.len(), indices)?;
+        total_vertices = u32::try_from(vertices.len())
+            .ok()
+            .and_then(|count| total_vertices.checked_add(count))
+            .ok_or("Merged mesh vertex count exceeds the u32 index range")?;
+    }
     if meshes.len() == 1 {
-        return meshes.into_iter().next().unwrap();
+        return Ok(meshes.into_iter().next().unwrap());
     }
 
     let mut merged_vertices = Vec::new();
@@ -850,7 +906,7 @@ fn merge_meshes<V: Clone>(meshes: Vec<(Vec<V>, Vec<[u32; 3]>)>) -> (Vec<V>, Vec<
         vertex_offset += vertices.len() as u32;
     }
 
-    (merged_vertices, merged_indices)
+    Ok((merged_vertices, merged_indices))
 }
 
 #[cfg(test)]
@@ -881,7 +937,7 @@ mod tests {
             vec![[0, 1, 2]],
         );
 
-        let (merged_vertices, merged_indices) = merge_meshes(vec![mesh1, mesh2]);
+        let (merged_vertices, merged_indices) = merge_meshes(vec![mesh1, mesh2]).unwrap();
 
         let expected_vertices = vec![
             point(0.0, 0.0, 0.0),

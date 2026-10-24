@@ -1345,11 +1345,12 @@ checksum = "4e27ee8bb91ca0adcf0ecb116293afa12d393f9c2b9b9cd54d33e8078fe19839"
 
 [[package]]
 name = "rs-read-trimesh"
-version = "2.1.0"
+version = "2.1.1"
 dependencies = [
  "cap-std",
  "dae-parser",
  "gltf",
+ "libc",
  "parry3d 0.13.8",
  "parry3d 0.17.6",
  "parry3d 0.25.3",
@@ -1360,6 +1361,7 @@ dependencies = [
  "parry3d 0.30.2",
  "parry3d 0.31.1",
  "ply-rs-bw",
+ "quick-xml",
  "stl_io",
  "tobj",
  "urlencoding",
