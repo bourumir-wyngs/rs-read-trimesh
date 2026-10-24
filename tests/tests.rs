@@ -42,6 +42,48 @@ use parry_27::shape::{TriMesh, TriMeshFlags};
 ))]
 use parry_28::shape::{TriMesh, TriMeshFlags};
 
+#[cfg(all(
+    not(any(
+        feature = "parry13",
+        feature = "parry17",
+        feature = "parry_19",
+        feature = "parry_26",
+        feature = "parry_27",
+        feature = "parry_28"
+    )),
+    feature = "parry_29"
+))]
+use parry_29::shape::{TriMesh, TriMeshFlags};
+
+#[cfg(all(
+    not(any(
+        feature = "parry13",
+        feature = "parry17",
+        feature = "parry_19",
+        feature = "parry_26",
+        feature = "parry_27",
+        feature = "parry_28",
+        feature = "parry_29"
+    )),
+    feature = "parry_30"
+))]
+use parry_30::shape::{TriMesh, TriMeshFlags};
+
+#[cfg(all(
+    not(any(
+        feature = "parry13",
+        feature = "parry17",
+        feature = "parry_19",
+        feature = "parry_26",
+        feature = "parry_27",
+        feature = "parry_28",
+        feature = "parry_29",
+        feature = "parry_30"
+    )),
+    feature = "parry_31"
+))]
+use parry_31::shape::{TriMesh, TriMeshFlags};
+
 #[test]
 fn test_doubles_ints_ply() {
     let file_path = "tests/sample_files/doubles_ints.ply";
@@ -70,6 +112,21 @@ fn test_floats_shorts_ply() {
 fn test_object_obj() {
     let file_path = "tests/sample_files/object.obj";
     run_trimesh_test(file_path);
+}
+
+#[test]
+fn test_scaled_vertices_preserve_indices() {
+    let mesh = load_trimesh_with_flags("tests/sample_files/object.obj", 2.0, TriMeshFlags::empty())
+        .expect("load a scaled OBJ mesh with the selected Parry backend");
+
+    let expected_vertices = [[-1.4, 4.2, 0.0], [2.8, 8.4, 0.0], [-7.0, 9.8, 0.0]];
+    assert_eq!(mesh.vertices().len(), expected_vertices.len());
+    for (vertex, expected) in mesh.vertices().iter().zip(expected_vertices) {
+        assert!(floats_match(vertex.x, expected[0]));
+        assert!(floats_match(vertex.y, expected[1]));
+        assert!(floats_match(vertex.z, expected[2]));
+    }
+    assert_eq!(mesh.indices(), &[[0, 1, 2]]);
 }
 
 #[test]

@@ -447,7 +447,7 @@ dependencies = [
  "approx",
  "glam 0.33.1",
  "num-traits",
- "simba 0.10.0",
+ "simba 0.10.2",
 ]
 
 [[package]]
@@ -794,6 +794,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "num-derive"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e4e98dc3b890f6c23a0f9d3d491a2823d0dea0fa656302a13dd225fa924112a8"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 3.0.6",
+]
+
+[[package]]
 name = "num-integer"
 version = "0.1.46"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -985,7 +996,91 @@ dependencies = [
  "num-traits",
  "ordered-float",
  "rstar 0.13.0",
- "simba 0.10.0",
+ "simba 0.10.2",
+ "slab",
+ "smallvec",
+ "spade",
+ "static_assertions",
+ "thiserror",
+]
+
+[[package]]
+name = "parry3d"
+version = "0.29.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "42cb0f1726c9fa25cad2583862ed86a3beee3a9b1f9fbe1fac8518615e778903"
+dependencies = [
+ "approx",
+ "arrayvec",
+ "bitflags 2.6.0",
+ "downcast-rs 2.0.1",
+ "either",
+ "ena",
+ "foldhash",
+ "glamx 0.3.0",
+ "hashbrown 0.17.1",
+ "log",
+ "num-derive 0.4.2",
+ "num-traits",
+ "ordered-float",
+ "rstar 0.13.0",
+ "simba 0.10.2",
+ "slab",
+ "smallvec",
+ "spade",
+ "static_assertions",
+ "thiserror",
+]
+
+[[package]]
+name = "parry3d"
+version = "0.30.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "01b00bf3ea4e0961a3f44aeb666b7dc3b0e87027b629561bd8283a7f6b2e2ed1"
+dependencies = [
+ "approx",
+ "arrayvec",
+ "bitflags 2.6.0",
+ "downcast-rs 2.0.1",
+ "either",
+ "ena",
+ "foldhash",
+ "glamx 0.3.0",
+ "hashbrown 0.17.1",
+ "log",
+ "num-derive 0.4.2",
+ "num-traits",
+ "ordered-float",
+ "rstar 0.13.0",
+ "simba 0.10.2",
+ "slab",
+ "smallvec",
+ "spade",
+ "static_assertions",
+ "thiserror",
+]
+
+[[package]]
+name = "parry3d"
+version = "0.31.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7b626edc0b497dba4bdf6e1e0797895294ed9f61dac2bd28cb5d34d37ad2ca7e"
+dependencies = [
+ "approx",
+ "arrayvec",
+ "bitflags 2.6.0",
+ "downcast-rs 2.0.1",
+ "either",
+ "ena",
+ "foldhash",
+ "glamx 0.3.0",
+ "hashbrown 0.17.1",
+ "log",
+ "num-derive 0.5.1",
+ "num-traits",
+ "ordered-float",
+ "rstar 0.13.0",
+ "simba 0.10.2",
  "slab",
  "smallvec",
  "spade",
@@ -1132,6 +1227,9 @@ dependencies = [
  "parry3d 0.26.1",
  "parry3d 0.27.0",
  "parry3d 0.28.0",
+ "parry3d 0.29.0",
+ "parry3d 0.30.2",
+ "parry3d 0.31.1",
  "parry3d 0.9.0",
  "ply-rs-bw",
  "stl_io",
@@ -1280,9 +1378,9 @@ dependencies = [
 
 [[package]]
 name = "simba"
-version = "0.10.0"
+version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f45c644a9f3a386f9288625d9f0c1e999e1acf07a37df35d0516c7f199d9cb2"
+checksum = "f1a7200d82ff1c7b4235efd12f11e2537a402c91cf83a5cb97ce80eef787fde7"
 dependencies = [
  "approx",
  "num-complex",

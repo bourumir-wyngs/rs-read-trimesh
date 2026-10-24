@@ -3,7 +3,10 @@ use gltf::buffer::{Data, View};
 use gltf::{Accessor, Primitive, Semantic};
 
 /// Checks the accessor preconditions required by the glTF geometry readers.
-pub(super) fn validate_primitive(primitive: &Primitive<'_>, buffers: &[Data]) -> Result<(), String> {
+pub(super) fn validate_primitive(
+    primitive: &Primitive<'_>,
+    buffers: &[Data],
+) -> Result<(), String> {
     let positions = primitive
         .get(&Semantic::Positions)
         .ok_or_else(|| "Missing glTF vertex positions".to_string())?;
@@ -119,7 +122,10 @@ fn checked_range<'a>(
         .and_then(|length| offset.checked_add(length))
         .and_then(|last| last.checked_add(size))
         .ok_or_else(invalid)?;
-    let view_end = view.offset().checked_add(view.length()).ok_or_else(invalid)?;
+    let view_end = view
+        .offset()
+        .checked_add(view.length())
+        .ok_or_else(invalid)?;
     let buffer = view.buffer();
     if view_end > buffer.length() {
         return Err(invalid());

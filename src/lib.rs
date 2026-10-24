@@ -16,10 +16,13 @@ mod gltf_validation;
     feature = "parry_19",
     feature = "parry_26",
     feature = "parry_27",
-    feature = "parry_28"
+    feature = "parry_28",
+    feature = "parry_29",
+    feature = "parry_30",
+    feature = "parry_31"
 )))]
 compile_error!(
-    "Enable exactly one Parry backend feature: use-parry-9_13, use-parry-14_17, use-parry-18_19, use-parry-26, use-parry-27, or use-parry-28."
+    "Enable exactly one Parry backend feature: use-parry-9_13, use-parry-14_17, use-parry-18_19, use-parry-26, use-parry-27, use-parry-28, use-parry-29, use-parry-30, or use-parry-31."
 );
 
 #[cfg(any(
@@ -30,7 +33,10 @@ compile_error!(
             feature = "parry_19",
             feature = "parry_26",
             feature = "parry_27",
-            feature = "parry_28"
+            feature = "parry_28",
+            feature = "parry_29",
+            feature = "parry_30",
+            feature = "parry_31"
         )
     ),
     all(
@@ -39,15 +45,48 @@ compile_error!(
             feature = "parry_19",
             feature = "parry_26",
             feature = "parry_27",
-            feature = "parry_28"
+            feature = "parry_28",
+            feature = "parry_29",
+            feature = "parry_30",
+            feature = "parry_31"
         )
     ),
     all(
         feature = "parry_19",
-        any(feature = "parry_26", feature = "parry_27", feature = "parry_28")
+        any(
+            feature = "parry_26",
+            feature = "parry_27",
+            feature = "parry_28",
+            feature = "parry_29",
+            feature = "parry_30",
+            feature = "parry_31"
+        )
     ),
-    all(feature = "parry_26", any(feature = "parry_27", feature = "parry_28")),
-    all(feature = "parry_27", feature = "parry_28")
+    all(
+        feature = "parry_26",
+        any(
+            feature = "parry_27",
+            feature = "parry_28",
+            feature = "parry_29",
+            feature = "parry_30",
+            feature = "parry_31"
+        )
+    ),
+    all(
+        feature = "parry_27",
+        any(
+            feature = "parry_28",
+            feature = "parry_29",
+            feature = "parry_30",
+            feature = "parry_31"
+        )
+    ),
+    all(
+        feature = "parry_28",
+        any(feature = "parry_29", feature = "parry_30", feature = "parry_31")
+    ),
+    all(feature = "parry_29", any(feature = "parry_30", feature = "parry_31")),
+    all(feature = "parry_30", feature = "parry_31")
 ))]
 compile_error!(
     "Enable only one Parry backend feature. Disable default features when selecting a non-default Parry version."
@@ -93,6 +132,48 @@ use parry_27::shape::{TriMesh, TriMeshFlags};
     feature = "parry_28"
 ))]
 use parry_28::shape::{TriMesh, TriMeshFlags};
+
+#[cfg(all(
+    not(any(
+        feature = "parry13",
+        feature = "parry17",
+        feature = "parry_19",
+        feature = "parry_26",
+        feature = "parry_27",
+        feature = "parry_28"
+    )),
+    feature = "parry_29"
+))]
+use parry_29::shape::{TriMesh, TriMeshFlags};
+
+#[cfg(all(
+    not(any(
+        feature = "parry13",
+        feature = "parry17",
+        feature = "parry_19",
+        feature = "parry_26",
+        feature = "parry_27",
+        feature = "parry_28",
+        feature = "parry_29"
+    )),
+    feature = "parry_30"
+))]
+use parry_30::shape::{TriMesh, TriMeshFlags};
+
+#[cfg(all(
+    not(any(
+        feature = "parry13",
+        feature = "parry17",
+        feature = "parry_19",
+        feature = "parry_26",
+        feature = "parry_27",
+        feature = "parry_28",
+        feature = "parry_29",
+        feature = "parry_30"
+    )),
+    feature = "parry_31"
+))]
+use parry_31::shape::{TriMesh, TriMeshFlags};
 
 /// Loads a 3D triangular mesh (TriMesh) from a given file, applies optional scaling
 /// and returns the constructed mesh. This function supports multiple formats.
@@ -153,7 +234,10 @@ pub fn load_trimesh(file_path: &str, scale: f32) -> Result<TriMesh, String> {
         feature = "parry17",
         feature = "parry_26",
         feature = "parry_27",
-        feature = "parry_28"
+        feature = "parry_28",
+        feature = "parry_29",
+        feature = "parry_30",
+        feature = "parry_31"
     ))]
     return load_trimesh_with_flags(
         file_path,
@@ -207,7 +291,10 @@ pub fn load_trimesh_with_flags(
         feature = "parry_19",
         feature = "parry_26",
         feature = "parry_27",
-        feature = "parry_28"
+        feature = "parry_28",
+        feature = "parry_29",
+        feature = "parry_30",
+        feature = "parry_31"
     ))]
     {
         return TriMesh::with_flags(vertices, indices, flags).map_err(|e| e.to_string());
@@ -438,11 +525,13 @@ where
                 gltf_validation::validate_primitive(&primitive, &buffers).map_err(|e| {
                     format!("Invalid geometry in glTF file '{}': {}", gltf_file_path, e)
                 })?;
-                let reader = primitive.reader(|buffer| {
-                    buffers.get(buffer.index()).map(|data| data.0.as_slice())
-                });
+                let reader = primitive
+                    .reader(|buffer| buffers.get(buffer.index()).map(|data| data.0.as_slice()));
                 let positions = reader.read_positions().ok_or_else(|| {
-                    format!("Unreadable vertex positions in glTF file '{}'", gltf_file_path)
+                    format!(
+                        "Unreadable vertex positions in glTF file '{}'",
+                        gltf_file_path
+                    )
                 })?;
 
                 let (index_offset, count) = gltf_vertex_layout(vertices.len(), positions.len())?;
@@ -474,7 +563,8 @@ where
                 if flat_indices.len() % 3 != 0 {
                     return Err(format!(
                         "Invalid triangle index count {} in glTF file '{}': expected a multiple of three",
-                        flat_indices.len(), gltf_file_path
+                        flat_indices.len(),
+                        gltf_file_path
                     ));
                 }
 

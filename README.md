@@ -11,39 +11,86 @@
 ## Features
 The library provides a single function that reads a file into a `TriMesh` given its file path. It supports `.ply`, `.stl`, `.obj`, `.dae` (Collada), `.gltf` and `.glb` formats, with built-in robustness to handle the diverse data structures found in `.ply` files, which may use different data types.
 
-Unlike in 1.x versions, using the newest stable Parry line is the default setting. Parry 0.28 can be used simply as
+### Choosing a Parry version
+
+Parry 0.28 and glTF support remain enabled by default. No `use-parry-NN` feature is
+needed when using this default backend:
 
 ```toml
-   [dependencies]
-   rs-read-trimesh = "2.0.9"
+[dependencies]
+rs-read-trimesh = "2.1.0"
 ```
 
-If you want to use Parry 0.18 through 0.25, disable default features and turn the feature `use-parry-18_19` on:
+Parry 0.29, 0.30 and 0.31 are also supported. To select a different backend, disable
+default features and enable exactly one selector from this table:
+
+| Parry version | Feature |
+| --- | --- |
+| 0.9–0.13 | `use-parry-9_13` |
+| 0.14–0.17 | `use-parry-14_17` |
+| 0.18–0.25 | `use-parry-18_19` (historical name) |
+| 0.26 | `use-parry-26` |
+| 0.27 | `use-parry-27` |
+| 0.28 (default) | `use-parry-28` |
+| 0.29 | `use-parry-29` |
+| 0.30 | `use-parry-30` |
+| 0.31 | `use-parry-31` |
+
+For example, to use Parry 0.31 with glTF/GLB support:
 
 ```toml
-   [dependencies]
-   rs-read-trimesh = { version = "2.0.9", default-features = false, features = ["use-parry-18_19"] }
+[dependencies]
+rs-read-trimesh = { version = "2.1.0", default-features = false, features = ["use-parry-31", "gltf"] }
+# Add this only if your code refers to Parry types or flags directly:
+parry3d = "0.31"
 ```
 
-If you want to use Parry 0.26 or 0.27, disable default features and enable the matching feature (`use-parry-26` or `use-parry-27`):
+Omit `gltf` from the feature list if you only need PLY, STL, OBJ and DAE.
+Disabling default features disables both the default Parry backend and glTF support.
+To keep Parry 0.28 while disabling glTF, use `default-features = false` with
+`features = ["use-parry-28"]`.
 
-```toml
-   [dependencies]
-   rs-read-trimesh = { version = "2.0.9", default-features = false, features = ["use-parry-27"] }
-```
+### When is a selector needed?
 
-If you want to use Parry 0.14 through 0.17, you need to disable default features and turn the feature `use-parry-14_17` on:
+`load_trimesh` returns the selected backend's concrete `TriMesh` type, and
+`load_trimesh_with_flags` accepts that backend's `TriMeshFlags`. If you only use the
+loaded mesh through this library's return value, the default backend is sufficient;
+you do not need to add `parry3d` yourself.
 
-```toml
-   [dependencies]
-   rs-read-trimesh = { version = "2.0.9", default-features = false, features = ["use-parry-14_17"] }
-```
+When sharing meshes or flags with another dependency, select its Parry version.
+For example, a function expecting `parry3d` 0.30's `TriMesh` needs `use-parry-30`.
+Parry 0.28's and 0.30's types are distinct even where their APIs look identical.
+For Rapier, match the **Parry version Rapier depends on**, rather than Rapier's own
+version number; flags can be imported through `rapier3d::parry`.
+Adding a direct Parry or Rapier dependency does not automatically select this
+library's backend.
 
-Finally, you can also use Parry 0.9 through 0.13 if you work with legacy versions
-```toml
-   [dependencies]
-   rs-read-trimesh = { version = "2.0.9", default-features = false, features = ["use-parry-9_13"] }
-```
+Exactly one backend must be enabled. Use `default-features = false` when selecting
+a backend other than 0.28. Cargo [combines features across dependency paths](https://doc.rust-lang.org/cargo/reference/features.html#feature-unification),
+so every dependency on this crate must agree on the backend and avoid re-enabling
+the default when another backend is selected. `--all-features` is therefore
+unsupported.
+
+The three legacy selectors cover version ranges; they do not pin a particular
+minor release. Cargo can resolve a different Parry release for another dependency,
+as explained in its [public dependency guidance](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#version-metadata).
+If you encounter incompatible `TriMesh` or `TriMeshFlags` types, inspect
+`cargo tree -d` and `cargo tree -e features`. For a legacy range, you may need to
+align the application's lockfile with
+`cargo update -p parry3d@<resolved-version> --precise <required-version>`.
+For the individual 0.26–0.31 selectors, each selects its matching minor line and
+allows compatible patch updates.
+
+### Parry 0.29–0.31 compatibility
+
+These releases retain the mesh construction API used here:
+`TriMesh::with_flags(vertices, indices, flags)`. Their vertices still support
+conversion from `[f32; 3]` and scaling, so all supported file formats use the
+existing loaders. Upstream changes to polylines in 0.29, SIMD/contact APIs in 0.30,
+and query results and additional mesh flags in 0.31 do not require loader changes.
+Parry 0.31.0 was yanked; the `0.31` dependency currently resolves to 0.31.1.
+See the [upstream changelog](https://github.com/dimforge/parry/blob/master/CHANGELOG.md)
+and [Parry 0.31 mesh API](https://docs.rs/parry3d/0.31.1/parry3d/shape/struct.TriMesh.html).
 
 ## Usage
 
@@ -58,7 +105,7 @@ fn main() {
 
     match load_trimesh(file_path, scale) {
         Ok(mesh) => {
-            println!("Successfully loaded and scaled mesh with {} vertices.", mesh.vertices.len());
+            println!("Successfully loaded and scaled mesh with {} vertices.", mesh.vertices().len());
         }
         Err(e) => {
             eprintln!("Error loading mesh: {}", e);
@@ -93,7 +140,7 @@ The following crates are used to power the functionality of this library:
 - [`parry3d`](https://crates.io/crates/parry3d): Provides 3D geometry processing for physical simulations. 
 
 Parry is only used as much here as its mesh data structure is involved. As mentioned, versions from as old as 0.9
-to the recent are supported.
+through 0.31 are supported.
 
 You **do not need to add these dependencies manually** to your `Cargo.toml`. They are automatically resolved by Cargo when you include `rs-read-trimesh` or any of the mentioned libraries.
 

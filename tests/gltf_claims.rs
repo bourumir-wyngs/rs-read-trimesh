@@ -12,6 +12,12 @@ use parry_26 as parry;
 use parry_27 as parry;
 #[cfg(feature = "parry_28")]
 use parry_28 as parry;
+#[cfg(feature = "parry_29")]
+use parry_29 as parry;
+#[cfg(feature = "parry_30")]
+use parry_30 as parry;
+#[cfg(feature = "parry_31")]
+use parry_31 as parry;
 #[cfg(feature = "parry13")]
 use parry13 as parry;
 #[cfg(feature = "parry17")]

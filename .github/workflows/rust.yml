@@ -31,6 +31,12 @@ jobs:
             command: cargo test --verbose --features use-parry-27,gltf --no-default-features
           - name: parry 0.28
             command: cargo test --verbose --features use-parry-28 --no-default-features
+          - name: parry 0.29
+            command: cargo test --verbose --features use-parry-29,gltf --no-default-features
+          - name: parry 0.30
+            command: cargo test --verbose --features use-parry-30,gltf --no-default-features
+          - name: parry 0.31
+            command: cargo test --verbose --features use-parry-31,gltf --no-default-features
 
     steps:
     - uses: actions/checkout@v4

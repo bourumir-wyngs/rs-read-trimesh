@@ -55,6 +55,8 @@ fn glb_length_smaller_than_its_header_returns_an_error_without_panicking() {
         header.extend(2_u32.to_le_bytes());
         header.extend(declared_length.to_le_bytes());
         std::fs::write(&fixture.path, header).unwrap();
-        load(&fixture).expect_err("the declared GLB length must include its twelve-byte header");
+        load(&fixture)
+            .map(|_| ())
+            .expect_err("the declared GLB length must include its twelve-byte header");
     }
 }

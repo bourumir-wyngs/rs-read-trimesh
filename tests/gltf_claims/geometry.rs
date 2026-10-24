@@ -166,6 +166,7 @@ fn float_index_accessor_returns_an_error_without_panicking() {
     // The referenced accessor exists, but FLOAT data cannot represent indices.
     document["meshes"][0]["primitives"][0]["indices"] = 0.into();
     load(&Fixture::new(&document, &buffer))
+        .map(|_| ())
         .expect_err("a FLOAT POSITION accessor cannot be used as an index accessor");
 }
 
@@ -174,6 +175,7 @@ fn position_stride_smaller_than_one_element_returns_an_error() {
     let (mut document, buffer) = triangle();
     document["bufferViews"][0]["byteStride"] = 4.into();
     load(&Fixture::new(&document, &buffer))
+        .map(|_| ())
         .expect_err("a twelve-byte POSITION element cannot have a four-byte stride");
 }
 
@@ -182,6 +184,7 @@ fn zero_position_count_returns_an_error_without_panicking() {
     let (mut document, buffer) = triangle();
     document["accessors"][0]["count"] = 0.into();
     load(&Fixture::new(&document, &buffer))
+        .map(|_| ())
         .expect_err("zero accessor count must be rejected before calculating count - 1");
 }
 
@@ -190,6 +193,7 @@ fn overflowing_buffer_view_range_returns_an_error_without_panicking() {
     let (mut document, buffer) = triangle();
     document["bufferViews"][0]["byteOffset"] = u64::MAX.into();
     load(&Fixture::new(&document, &buffer))
+        .map(|_| ())
         .expect_err("the buffer view end must not wrap when its length is added");
 }
 
@@ -198,6 +202,7 @@ fn overflowing_accessor_range_returns_an_error_without_panicking() {
     let (mut document, buffer) = triangle();
     document["accessors"][0]["byteOffset"] = u64::MAX.into();
     load(&Fixture::new(&document, &buffer))
+        .map(|_| ())
         .expect_err("the accessor end must not wrap when its data size is added");
 }
 
@@ -206,6 +211,7 @@ fn overflowing_accessor_count_returns_an_error_without_panicking() {
     let (mut document, buffer) = triangle();
     document["accessors"][0]["count"] = u64::MAX.into();
     load(&Fixture::new(&document, &buffer))
+        .map(|_| ())
         .expect_err("the accessor byte count must not wrap or cause an allocation");
 }
 
@@ -217,6 +223,7 @@ fn incomplete_triangle_returns_an_error_instead_of_dropping_an_index() {
     document["bufferViews"][1]["byteLength"] = 8.into();
     document["accessors"][1]["count"] = 4.into();
     load(&Fixture::new(&document, &buffer))
+        .map(|_| ())
         .expect_err("four indices cannot form a complete TRIANGLES primitive");
 }
 
@@ -267,6 +274,7 @@ fn out_of_range_sparse_index_returns_an_error() {
     let (document, mut buffer) = sparse_triangle();
     buffer[45] = 3;
     load(&Fixture::new(&document, &buffer))
+        .map(|_| ())
         .expect_err("sparse index 3 is outside the three-element POSITION accessor");
 }
 
@@ -275,6 +283,7 @@ fn non_increasing_sparse_indices_return_an_error() {
     let (document, mut buffer) = sparse_triangle();
     buffer[44..46].copy_from_slice(&[2, 1]);
     load(&Fixture::new(&document, &buffer))
+        .map(|_| ())
         .expect_err("sparse indices must be strictly increasing");
 }
 
@@ -283,5 +292,6 @@ fn truncated_sparse_values_return_an_error_without_panicking() {
     let (mut document, buffer) = sparse_triangle();
     document["bufferViews"][3]["byteLength"] = 12.into();
     load(&Fixture::new(&document, &buffer))
+        .map(|_| ())
         .expect_err("two sparse positions require twenty-four bytes of values");
 }
