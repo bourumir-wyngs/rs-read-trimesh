@@ -181,9 +181,11 @@ pub fn load_trimesh_with_flags(
         Some("ply") => load_trimesh_from_ply(file_path)?,
         Some("obj") => load_trimesh_from_obj(file_path)?,
         Some("dae") => load_trimesh_from_dae(file_path)?,
+        #[cfg(feature = "gltf")]
+        Some("gltf") | Some("glb") => load_trimesh_from_gltf(file_path)?,
         _ => {
             return Err(format!(
-                "Unsupported file extension for '{}', only .stl, .ply, and .obj are supported.",
+                "Unsupported file extension for '{}', only .stl, .ply and .obj are supported.",
                 file_path
             ));
         }
@@ -367,6 +369,171 @@ where
         .collect::<Result<Vec<[u32; 3]>, String>>()?; // Collect and propagate errors
 
     Ok((vertices, indices))
+}
+
+/// Function to load a TriMesh from a GLTF file
+#[cfg(feature = "gltf")]
+fn load_trimesh_from_gltf<V>(gltf_file_path: &str) -> Result<(Vec<V>, Vec<[u32; 3]>), String>
+where
+    V: From<[f32; 3]>,
+{
+    // Load the GLTF file using the `gltf` library
+    let contents = catch_gltf_panic(|| gltf::Gltf::open(gltf_file_path))
+        .and_then(|opened| opened.map_err(|e| e.to_string()))
+        .map_err(|e| format!("Failed to load file '{}': {}", gltf_file_path, e))?;
+
+    let base = std::path::Path::new(gltf_file_path).parent();
+    let buffers =
+        catch_gltf_panic(|| gltf::import_buffers(&contents.document, base, contents.blob))
+            .and_then(|imported| imported.map_err(|e| e.to_string()))
+            .map_err(|e| {
+                format!(
+                    "Failed to load buffers for file '{}': {}",
+                    gltf_file_path, e
+                )
+            })?;
+
+    // Collect vertices and indices
+    let mut vertices = Vec::new();
+    let mut indices = Vec::new();
+
+    // GLTF has 1 scene typically
+    let scene = contents
+        .document
+        .default_scene()
+        .or_else(|| contents.document.scenes().next())
+        .ok_or_else(|| format!("No scenes found in glTF file: {gltf_file_path}!"))?;
+
+    const IDENTITY: [[f32; 4]; 4] = [
+        [1.0, 0.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0, 0.0],
+        [0.0, 0.0, 0.0, 1.0],
+    ];
+
+    // Traverse scene nodes. Could be using recursion too
+    let mut pending: Vec<(gltf::Node, [[f32; 4]; 4])> =
+        scene.nodes().map(|node| (node, IDENTITY)).collect();
+
+    let mut visited = std::collections::HashSet::new();
+
+    while let Some((node, parent_mat)) = pending.pop() {
+        if !visited.insert(node.index()) {
+            return Err(format!(
+                "Invalid node hierarchy in glTF file '{}': node {} is reachable more than once",
+                gltf_file_path,
+                node.index()
+            ));
+        }
+
+        let mat = mul_mat4(parent_mat, node.transform().matrix());
+        let mirrored = det_mat3(mat) < 0.0;
+
+        if let Some(mesh) = node.mesh() {
+            for primitive in mesh.primitives() {
+                // Only Triangles, we can add TriangleStrip and TriangleFan support but it's rarely used.
+                if primitive.mode() != gltf::mesh::Mode::Triangles {
+                    continue;
+                }
+
+                let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
+                let Some(positions) = reader.read_positions() else {
+                    // Positions should exist but can't be read (glTF file is broken)
+                    if primitive.get(&gltf::Semantic::Positions).is_some() {
+                        return Err(format!(
+                            "Unreadable vertex positions in glTF file '{}'",
+                            gltf_file_path
+                        ));
+                    }
+                    // In practice the position attribute exists, but the spec doesn't require it so skip if missing
+                    continue;
+                };
+
+                let index_offset = vertices.len() as u32;
+                let count = positions.len() as u32;
+
+                // Bake world transform into vertex positions
+                vertices.extend(positions.map(|p| transform_vec3(mat, p).into()));
+
+                let flat_indices: Vec<u32> = match reader.read_indices() {
+                    Some(read_indices) => read_indices.into_u32().collect(),
+                    // Indices should exist but can't be read (glTF file is broken)
+                    None if primitive.indices().is_some() => {
+                        return Err(format!(
+                            "Unreadable indices in glTF file '{}'",
+                            gltf_file_path
+                        ));
+                    }
+                    // Create the indices if the geometry has no index buffer
+                    None => (0..count).collect(),
+                };
+
+                // Indices must refer to this primitive's own vertices
+                if let Some(invalid) = flat_indices.iter().find(|&&index| index >= count) {
+                    return Err(format!(
+                        "Invalid index {} in glTF file '{}': the primitive has only {} vertices",
+                        invalid, gltf_file_path, count
+                    ));
+                }
+
+                // Write indices by walking the indices in groups of three.
+                // Negative scaling (det(mat) < 0): flip the faces so they stay CCW.
+                indices.extend(flat_indices.chunks_exact(3).map(|face| {
+                    let (b, c) = if mirrored { (2, 1) } else { (1, 2) };
+                    [
+                        face[0] + index_offset,
+                        face[b] + index_offset,
+                        face[c] + index_offset,
+                    ]
+                }));
+            }
+        }
+
+        for child in node.children() {
+            pending.push((child, mat));
+        }
+    }
+
+    Ok((vertices, indices))
+}
+
+/// Runs a call into the `gltf` crate and turns a panic inside it into an error.
+/// gltf 1.4.1 panics on some malformed files instead of returning an error.
+#[cfg(feature = "gltf")]
+fn catch_gltf_panic<T>(call: impl FnOnce() -> T) -> Result<T, String> {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(call))
+        .map_err(|_| "the glTF parser panicked on malformed input".to_string())
+}
+
+/// Multiplies two column-major 4x4 matrices, returning `a * b`
+#[cfg(feature = "gltf")]
+fn mul_mat4(a: [[f32; 4]; 4], b: [[f32; 4]; 4]) -> [[f32; 4]; 4] {
+    let mut out = [[0.0; 4]; 4];
+    for c in 0..4 {
+        for r in 0..4 {
+            for k in 0..4 {
+                out[c][r] += a[k][r] * b[c][k];
+            }
+        }
+    }
+    out
+}
+
+/// Transforms a point with a column-major 4x4 matrix.
+#[cfg(feature = "gltf")]
+fn transform_vec3(m: [[f32; 4]; 4], p: [f32; 3]) -> [f32; 3] {
+    [
+        m[0][0] * p[0] + m[1][0] * p[1] + m[2][0] * p[2] + m[3][0],
+        m[0][1] * p[0] + m[1][1] * p[1] + m[2][1] * p[2] + m[3][1],
+        m[0][2] * p[0] + m[1][2] * p[1] + m[2][2] * p[2] + m[3][2],
+    ]
+}
+
+#[cfg(feature = "gltf")]
+fn det_mat3(m: [[f32; 4]; 4]) -> f32 {
+    m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1])
+        + m[0][1] * (m[1][2] * m[2][0] - m[1][0] * m[2][2])
+        + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0])
 }
 
 /// Function to load a TriMesh from an OBJ file

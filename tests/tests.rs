@@ -213,6 +213,13 @@ fn test_collada_robot() {
     }
 }
 
+#[cfg(feature = "gltf")]
+#[test]
+fn test_glb() {
+    let file_path = "tests/sample_files/gltf/triangle_interleaved.glb";
+    run_trimesh_test(file_path);
+}
+
 #[cfg(feature = "parry_26")]
 #[test]
 fn test_parry_26_feature_loads_trimesh() {
