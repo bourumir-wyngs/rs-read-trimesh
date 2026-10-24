@@ -8,6 +8,8 @@ use stl_io::read_stl;
 use tobj;
 
 #[cfg(feature = "gltf")]
+mod gltf_buffers;
+#[cfg(feature = "gltf")]
 mod gltf_validation;
 
 #[cfg(not(any(
@@ -201,6 +203,8 @@ use parry_31::shape::{TriMesh, TriMeshFlags};
 /// * `.obj` - Wavefront OBJ files.
 /// * `.dae` - Collada files
 /// * `.gltf`, `.glb` - glTF files, with the `gltf` feature (enabled by default).
+///   External buffers must use relative URIs confined to the model's directory.
+///   Embedded data URIs and GLB buffers are also supported.
 ///
 /// # Errors
 ///
@@ -468,16 +472,25 @@ fn load_trimesh_from_gltf<V>(gltf_file_path: &str) -> Result<(Vec<V>, Vec<[u32; 
 where
     V: From<[f32; 3]>,
 {
+    // Hold the directory open for the entire import so all buffer reads use
+    // the same filesystem boundary, even if paths or symlinks are replaced.
+    let base_path = Path::new(gltf_file_path)
+        .parent()
+        .filter(|path| !path.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
+    let base = cap_std::fs::Dir::open_ambient_dir(base_path, cap_std::ambient_authority())
+        .map_err(|e| {
+            format!(
+                "Failed to open glTF directory '{}': {}",
+                base_path.display(),
+                e
+            )
+        })?;
     let contents = open_gltf(gltf_file_path)
         .map_err(|e| format!("Failed to load file '{}': {}", gltf_file_path, e))?;
 
-    let base = std::path::Path::new(gltf_file_path).parent();
-    let buffers = gltf::import_buffers(&contents.document, base, contents.blob).map_err(|e| {
-        format!(
-            "Failed to load buffers for file '{}': {}",
-            gltf_file_path, e
-        )
-    })?;
+    let buffers = gltf_buffers::import_buffers(&contents.document, &base, contents.blob)
+        .map_err(|e| format!("Failed to load buffers for file '{}': {}", gltf_file_path, e))?;
 
     // Collect vertices and indices
     let mut vertices = Vec::new();
@@ -613,14 +626,6 @@ fn open_gltf(path: &str) -> Result<gltf::Gltf, String> {
                 if json.accessors.get(index.value()).is_none() {
                     return Err(format!("Missing attribute accessor {}", index.value()));
                 }
-            }
-        }
-    }
-    for buffer in &json.buffers {
-        if let Some(uri) = &buffer.uri {
-            // Only relative URIs are percent-decoded by the upstream importer.
-            if !uri.contains(':') {
-                let _ = urlencoding::decode(uri).map_err(|e| format!("Invalid buffer URI: {e}"))?;
             }
         }
     }

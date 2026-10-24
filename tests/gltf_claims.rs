@@ -36,6 +36,8 @@ mod dependency;
 mod geometry;
 #[path = "gltf_claims/hierarchy.rs"]
 mod hierarchy;
+#[path = "gltf_claims/resources.rs"]
+mod resources;
 
 fn json(text: &str) -> Value {
     gltf::json::deserialize::from_str(text).expect("valid fixture JSON")

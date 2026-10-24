@@ -129,6 +129,13 @@ scenes are rejected. Triangle strips, triangle fans, points, and lines are skipp
 Skinning, morph weights, and animation are not applied; the loader extracts the
 unskinned, unmorphed base geometry. Textures and materials are not loaded.
 
+glTF buffer files must resolve within the model file's parent directory.
+Relative paths (including percent-encoded names), nested directories, embedded
+data URIs, and GLB buffers are supported. Absolute paths, `file:` or other
+external URI schemes, Windows drive/backslash paths, and paths or symlinks
+escaping that directory are rejected. Keep an untrusted model and its buffers
+in a dedicated directory containing only resources it may read.
+
 ## Dependencies
 
 The following crates are used to power the functionality of this library:
