@@ -46,3 +46,15 @@ fn valid_percent_encoded_buffer_uri_loads_successfully() {
     assert_eq!(mesh.vertices().len(), 3);
     assert_eq!(mesh.indices(), &[[0, 1, 2]]);
 }
+
+#[test]
+fn glb_length_smaller_than_its_header_returns_an_error_without_panicking() {
+    for declared_length in [0_u32, 8] {
+        let fixture = Fixture::new(&json(r#"{"asset":{"version":"2.0"}}"#), &[]);
+        let mut header = b"glTF".to_vec();
+        header.extend(2_u32.to_le_bytes());
+        header.extend(declared_length.to_le_bytes());
+        std::fs::write(&fixture.path, header).unwrap();
+        load(&fixture).expect_err("the declared GLB length must include its twelve-byte header");
+    }
+}

@@ -1123,7 +1123,7 @@ checksum = "4e27ee8bb91ca0adcf0ecb116293afa12d393f9c2b9b9cd54d33e8078fe19839"
 
 [[package]]
 name = "rs-read-trimesh"
-version = "2.0.10"
+version = "2.1.0"
 dependencies = [
  "dae-parser",
  "gltf",
@@ -1136,6 +1136,7 @@ dependencies = [
  "ply-rs-bw",
  "stl_io",
  "tobj",
+ "urlencoding",
 ]
 
 [[package]]

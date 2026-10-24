@@ -9,7 +9,7 @@
 `rs-read-trimesh` is a Rust library for loading 3D triangular meshes from files in various 3D formats. The main motivation behind this library is that existing readers do not directly output the format we work with (Parry's `TriMesh`) and require additional boilerplate code, which would be better implemented as a separate dependency.
 
 ## Features
-The library provides a single function that reads a file into a `TriMesh` given its file path. It supports `.ply`, `.stl`, `.obj` and `.dae` (Collada) formats, with built-in robustness to handle the diverse data structures found in `.ply` files, which may use different data types.
+The library provides a single function that reads a file into a `TriMesh` given its file path. It supports `.ply`, `.stl`, `.obj`, `.dae` (Collada), `.gltf` and `.glb` formats, with built-in robustness to handle the diverse data structures found in `.ply` files, which may use different data types.
 
 Unlike in 1.x versions, using the newest stable Parry line is the default setting. Parry 0.28 can be used simply as
 
@@ -73,6 +73,14 @@ The `scale` parameter allows you to scale all the vertices of the mesh. Setting 
 
 ### Limitations
 For .dae, only triangle meshes are supported (this format may contain lots of other stuff). If the .dae file contains multiple meshes, they are merged.
+
+The `gltf` feature, enabled by default, adds `.gltf` and `.glb` support. When disabling
+default features to select a Parry backend, enable `gltf` explicitly if needed.
+The loader selects the default scene, or the first scene when none is designated,
+and merges its triangle-list primitives with node transforms applied. Files without
+scenes are rejected. Triangle strips, triangle fans, points, and lines are skipped.
+Skinning, morph weights, and animation are not applied; the loader extracts the
+unskinned, unmorphed base geometry. Textures and materials are not loaded.
 
 ## Dependencies
 

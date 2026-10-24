@@ -7,6 +7,9 @@ use std::path::Path;
 use stl_io::read_stl;
 use tobj;
 
+#[cfg(feature = "gltf")]
+mod gltf_validation;
+
 #[cfg(not(any(
     feature = "parry13",
     feature = "parry17",
@@ -116,6 +119,7 @@ use parry_28::shape::{TriMesh, TriMeshFlags};
 /// * `.ply` - Polygon files that can represent geometric 3D data.
 /// * `.obj` - Wavefront OBJ files.
 /// * `.dae` - Collada files
+/// * `.gltf`, `.glb` - glTF files, with the `gltf` feature (enabled by default).
 ///
 /// # Errors
 ///
@@ -377,21 +381,16 @@ fn load_trimesh_from_gltf<V>(gltf_file_path: &str) -> Result<(Vec<V>, Vec<[u32; 
 where
     V: From<[f32; 3]>,
 {
-    // Load the GLTF file using the `gltf` library
-    let contents = catch_gltf_panic(|| gltf::Gltf::open(gltf_file_path))
-        .and_then(|opened| opened.map_err(|e| e.to_string()))
+    let contents = open_gltf(gltf_file_path)
         .map_err(|e| format!("Failed to load file '{}': {}", gltf_file_path, e))?;
 
     let base = std::path::Path::new(gltf_file_path).parent();
-    let buffers =
-        catch_gltf_panic(|| gltf::import_buffers(&contents.document, base, contents.blob))
-            .and_then(|imported| imported.map_err(|e| e.to_string()))
-            .map_err(|e| {
-                format!(
-                    "Failed to load buffers for file '{}': {}",
-                    gltf_file_path, e
-                )
-            })?;
+    let buffers = gltf::import_buffers(&contents.document, base, contents.blob).map_err(|e| {
+        format!(
+            "Failed to load buffers for file '{}': {}",
+            gltf_file_path, e
+        )
+    })?;
 
     // Collect vertices and indices
     let mut vertices = Vec::new();
@@ -436,21 +435,17 @@ where
                     continue;
                 }
 
-                let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
-                let Some(positions) = reader.read_positions() else {
-                    // Positions should exist but can't be read (glTF file is broken)
-                    if primitive.get(&gltf::Semantic::Positions).is_some() {
-                        return Err(format!(
-                            "Unreadable vertex positions in glTF file '{}'",
-                            gltf_file_path
-                        ));
-                    }
-                    // In practice the position attribute exists, but the spec doesn't require it so skip if missing
-                    continue;
-                };
+                gltf_validation::validate_primitive(&primitive, &buffers).map_err(|e| {
+                    format!("Invalid geometry in glTF file '{}': {}", gltf_file_path, e)
+                })?;
+                let reader = primitive.reader(|buffer| {
+                    buffers.get(buffer.index()).map(|data| data.0.as_slice())
+                });
+                let positions = reader.read_positions().ok_or_else(|| {
+                    format!("Unreadable vertex positions in glTF file '{}'", gltf_file_path)
+                })?;
 
-                let index_offset = vertices.len() as u32;
-                let count = positions.len() as u32;
+                let (index_offset, count) = gltf_vertex_layout(vertices.len(), positions.len())?;
 
                 // Bake world transform into vertex positions
                 vertices.extend(positions.map(|p| transform_vec3(mat, p).into()));
@@ -476,7 +471,14 @@ where
                     ));
                 }
 
-                // Write indices by walking the indices in groups of three.
+                if flat_indices.len() % 3 != 0 {
+                    return Err(format!(
+                        "Invalid triangle index count {} in glTF file '{}': expected a multiple of three",
+                        flat_indices.len(), gltf_file_path
+                    ));
+                }
+
+                // Each local index is below count, and offset + count fits in u32.
                 // Negative scaling (det(mat) < 0): flip the faces so they stay CCW.
                 indices.extend(flat_indices.chunks_exact(3).map(|face| {
                     let (b, c) = if mirrored { (2, 1) } else { (1, 2) };
@@ -497,12 +499,72 @@ where
     Ok((vertices, indices))
 }
 
-/// Runs a call into the `gltf` crate and turns a panic inside it into an error.
-/// gltf 1.4.1 panics on some malformed files instead of returning an error.
+/// Checks the preconditions that gltf 1.4.1 assumes during parsing and import.
 #[cfg(feature = "gltf")]
-fn catch_gltf_panic<T>(call: impl FnOnce() -> T) -> Result<T, String> {
-    std::panic::catch_unwind(std::panic::AssertUnwindSafe(call))
-        .map_err(|_| "the glTF parser panicked on malformed input".to_string())
+fn open_gltf(path: &str) -> Result<gltf::Gltf, String> {
+    let bytes = std::fs::read(path).map_err(|e| e.to_string())?;
+    if bytes.starts_with(b"glTF") {
+        let length_bytes: [u8; 4] = bytes
+            .get(8..12)
+            .and_then(|slice| slice.try_into().ok())
+            .ok_or_else(|| "Incomplete GLB header".to_string())?;
+        let length = u32::from_le_bytes(length_bytes);
+        if length < 12 || u64::from(length) != bytes.len() as u64 {
+            return Err("Invalid GLB header length".to_string());
+        }
+    }
+
+    let contents = gltf::Gltf::from_slice_without_validation(&bytes).map_err(|e| e.to_string())?;
+    let json = contents.document.into_json();
+    // The upstream POSITION validation hook indexes accessors before reporting errors.
+    for mesh in &json.meshes {
+        for primitive in &mesh.primitives {
+            for index in primitive.attributes.values() {
+                if json.accessors.get(index.value()).is_none() {
+                    return Err(format!("Missing attribute accessor {}", index.value()));
+                }
+            }
+        }
+    }
+    for buffer in &json.buffers {
+        if let Some(uri) = &buffer.uri {
+            // Only relative URIs are percent-decoded by the upstream importer.
+            if !uri.contains(':') {
+                let _ = urlencoding::decode(uri).map_err(|e| format!("Invalid buffer URI: {e}"))?;
+            }
+        }
+    }
+    let document = gltf::Document::from_json(json).map_err(|e| e.to_string())?;
+    Ok(gltf::Gltf {
+        document,
+        blob: contents.blob,
+    })
+}
+
+/// Returns checked vertex offsets and counts before allocating merged geometry.
+#[cfg(feature = "gltf")]
+fn gltf_vertex_layout(existing: usize, added: usize) -> Result<(u32, u32), String> {
+    let too_large = || "glTF vertex count exceeds the u32 index range".to_string();
+    let offset = u32::try_from(existing).map_err(|_| too_large())?;
+    let count = u32::try_from(added).map_err(|_| too_large())?;
+    offset.checked_add(count).ok_or_else(too_large)?;
+    Ok((offset, count))
+}
+
+#[cfg(all(test, feature = "gltf"))]
+mod gltf_vertex_layout_tests {
+    use super::gltf_vertex_layout;
+
+    #[test]
+    fn merged_vertex_count_checks_u32_boundary_without_allocating() {
+        let limit = u32::MAX as usize;
+        assert_eq!(gltf_vertex_layout(limit - 3, 3), Ok((u32::MAX - 3, 3)));
+        assert!(gltf_vertex_layout(limit - 2, 3).is_err());
+        if let Some(oversized) = limit.checked_add(1) {
+            assert!(gltf_vertex_layout(oversized, 0).is_err());
+            assert!(gltf_vertex_layout(0, oversized).is_err());
+        }
+    }
 }
 
 /// Multiplies two column-major 4x4 matrices, returning `a * b`

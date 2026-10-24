@@ -1,10 +1,7 @@
-//! Regression tests for the safe behavior required by the glTF PR review.
-//! The bug cases must fail until the loader rejects malformed input without
-//! panicking or hanging, and preserves winding or rejects mirrored transforms.
+//! Regression tests for malformed glTF rejection and transformed mesh geometry.
 //! Run with `cargo test --test gltf_claims -- --nocapture`.
-//! Also run with `--release` to detect unchecked index addition wrapping.
-//! The `usize`-to-`u32` vertex-count cast is not exercised at its limit: doing so
-//! through the public loader would require allocating over four billion vertices.
+//! Also run with `--release` to cover dependency readers without debug assertions.
+//! Vertex-count boundaries are covered by unit tests without allocating geometry.
 #![cfg(feature = "gltf")]
 
 #[cfg(feature = "parry_19")]
