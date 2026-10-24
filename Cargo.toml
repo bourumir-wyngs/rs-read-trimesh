@@ -43,3 +43,8 @@ gltf = ["dep:gltf", "dep:urlencoding"]
 default = ["parry_28", "gltf"]
 
 # cargo test --features use-parry-18_19 --no-default-features
+
+# dae-parser still requires minidom-14 0.17, whose released version uses
+# vulnerable quick-xml 0.36. This local patch upgrades it to quick-xml 0.41.
+[patch.crates-io]
+minidom-14 = { path = "vendor/minidom-14" }

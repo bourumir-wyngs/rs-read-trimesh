@@ -37,6 +37,8 @@ jobs:
             command: cargo test --verbose --features use-parry-30,gltf --no-default-features
           - name: parry 0.31
             command: cargo test --verbose --features use-parry-31,gltf --no-default-features
+          - name: vendored XML parser
+            command: cargo test --verbose --manifest-path vendor/minidom-14/Cargo.toml
 
     steps:
     - uses: actions/checkout@v4

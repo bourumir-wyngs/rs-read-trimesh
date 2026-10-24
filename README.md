@@ -144,6 +144,15 @@ through 0.31 are supported.
 
 You **do not need to add these dependencies manually** to your `Cargo.toml`. They are automatically resolved by Cargo when you include `rs-read-trimesh` or any of the mentioned libraries.
 
+### Local XML security patch
+
+This checkout patches `minidom-14`, a dependency of `dae-parser`, to use
+`quick-xml` 0.41 and resolve RUSTSEC-2026-0194 and RUSTSEC-2026-0195.
+See [the vendored dependency notes](vendor/minidom-14/README.md) for the
+source, changes, and tests. Cargo does not propagate this root patch to
+projects consuming `rs-read-trimesh`; those projects need their own patch
+until a fixed dependency release is available.
+
 ## License
 
 This project is licensed under the MIT License (see the [LICENSE](LICENSE) file for details). Some testing material is under Apache v 2.0.
