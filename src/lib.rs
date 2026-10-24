@@ -200,7 +200,7 @@ use parry_31::shape::{TriMesh, TriMeshFlags};
 /// This function determines the file type based on the file extension:
 /// * `.stl` - Standard Tessellation Language files.
 /// * `.ply` - Polygon files that can represent geometric 3D data.
-/// * `.obj` - Wavefront OBJ files.
+/// * `.obj` - Wavefront OBJ files. Material libraries (`mtllib`) are ignored.
 /// * `.dae` - Collada files
 /// * `.gltf`, `.glb` - glTF files, with the `gltf` feature (enabled by default).
 ///   External buffers must use relative URIs confined to the model's directory.
@@ -698,8 +698,17 @@ fn load_trimesh_from_obj<V>(obj_file_path: &str) -> Result<(Vec<V>, Vec<[u32; 3]
 where
     V: From<[f32; 3]>,
 {
-    // Load the OBJ file using the `tobj` library
-    let (models, _) = tobj::load_obj(obj_file_path, &tobj::LoadOptions::default())
+    let (models, _) = File::open(obj_file_path)
+        .map_err(|_| tobj::LoadError::OpenFileFailed)
+        .and_then(|file| {
+            // Materials are unused. Never resolve mtllib paths: even material-name
+            // lookups can expose local file contents by changing model splitting.
+            tobj::load_obj_buf(
+                &mut BufReader::new(file),
+                &tobj::LoadOptions::default(),
+                |_| Ok((Vec::new(), Default::default())),
+            )
+        })
         .map_err(|e| format!("Failed to load .obj file '{}': {}", obj_file_path, e))?;
 
     // Collect vertices and indices

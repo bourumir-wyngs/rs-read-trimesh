@@ -121,6 +121,9 @@ The `scale` parameter allows you to scale all the vertices of the mesh. Setting 
 ### Limitations
 For .dae, only triangle meshes are supported (this format may contain lots of other stuff). If the .dae file contains multiple meshes, they are merged.
 
+OBJ material libraries (`mtllib`) are ignored and never opened. Material names
+do not affect the returned geometry.
+
 The `gltf` feature, enabled by default, adds `.gltf` and `.glb` support. When disabling
 default features to select a Parry backend, enable `gltf` explicitly if needed.
 The loader selects the default scene, or the first scene when none is designated,

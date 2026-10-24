@@ -1,6 +1,8 @@
 use rs_read_trimesh::{load_trimesh, load_trimesh_with_flags};
 use std::path::Path;
 
+mod obj_resources;
+
 #[cfg(feature = "parry13")]
 use parry13::shape::{TriMesh, TriMeshFlags};
 
